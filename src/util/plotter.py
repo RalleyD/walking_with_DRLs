@@ -41,7 +41,7 @@ def learning_rate_ma(x: Optional[np.array], y: np.array, title: Optional[str] = 
     plt.show()
 
 
-def record_gif(gif_frames: list, fps=60, filename: str = "reinforce") -> None:
+def record_gif(gif_frames: list, fps=120, filename: str = "reinforce") -> None:
 
     out_dir = PRJ_ROOT / "recordings"
     file = filename + '-' + datetime.now().strftime("%Y-%m-%d_%H_%M_%S") + ".gif"

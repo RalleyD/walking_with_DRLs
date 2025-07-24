@@ -1,7 +1,16 @@
 import numpy as np
 import gymnasium as gym
+from torchsummary import summary
+import glfw
 from src.reinforce.reinforce_agent import ReinforceAgent
 from src.util.plotter import record_gif
+from src.custom_logger import CustomLogger
+
+########################################
+# logger
+########################################
+logger = CustomLogger.get_project_logger()
+########################################
 
 
 class ReinforceTrainer:
@@ -13,7 +22,7 @@ class ReinforceTrainer:
                  agent: ReinforceAgent,
                  n_episodes: int,
                  evaluate_interval: int = 100,
-                 show_policy_interval: int = 500
+                 show_policy_interval: int = 10000
                  ):
         """
         Args:
@@ -32,7 +41,7 @@ class ReinforceTrainer:
     def train(self):
         """Run the training loop.
         """
-        episode_lengths = []
+        # episode_lengths = []
         episode_returns = []
 
         for episode_n in range(self.n_episodes):
@@ -60,22 +69,22 @@ class ReinforceTrainer:
                 current_episode_return += reward
 
             self.agent.update(log_probs, rewards)
-            episode_lengths.append(len(rewards))
+            # episode_lengths.append(len(rewards))
             episode_returns.append(current_episode_return)
 
-            print("\n=== Training stats: ===")
-            print("\tAverage episode length: ", np.mean(episode_lengths))
+            # print("\n=== Training stats: ===")
+            # print("\tAverage episode length: ", np.mean(episode_lengths))
 
             if episode_n % self.evaluate_interval-1 == 0:
-                print(
-                    f"\tMean reward from last {self.evaluate_interval} returns: {np.mean(episode_returns[-self.evaluate_interval:])}")
+                logger.info(
+                    f"""
+                        \n=== Episode {episode_n} ===
+                          Mean reward from last {self.evaluate_interval} returns: {np.mean(episode_returns[-self.evaluate_interval:])}
+                    """
+                )
 
             if episode_n % self.show_policy_interval-1 == 0:
                 self.show_policy()
-
-            if episode_n == self.n_episodes - 1:
-                # GIF the last episode for record keeping
-                self.show_policy(record=True)
 
         checkpoint = {
             "epoch": self.n_episodes,
@@ -84,20 +93,28 @@ class ReinforceTrainer:
             "returns": episode_returns
         }
 
+        logger.info(
+            f"=== Model Summary ===\n"
+            f"{summary(self.agent.policy, input_size=obs.shape[0])}\n"
+            f"--- Epochs ---\n"
+            f"    {self.n_episodes}\n"
+            f"--- Model State ---\n"
+            f"    {self.agent.policy.state_dict()}\n"
+            f"--- Optimiser State ---\n"
+            f"    {self.agent.optimizer.state_dict()}\n"
+        )
+
         self.agent.save_model(checkpoint)
 
         return episode_returns
 
-    def show_policy(self, record=False):
+    def show_policy(self):
         """
         Run a single episode in the environemtn and render a GUI
         to view the agent's current policy.
         """
-        if record:
-            vis_env = gym.make(self.env.spec.id, render_mode='rgb_array')
-        else:
-            vis_env = gym.make(self.env.spec.id, render_mode='human')
-
+        logger.info("Recording episode")
+        vis_env = gym.make(self.env.spec.id, render_mode='rgb_array')
         obs, _ = vis_env.reset()
         initial_frame = vis_env.render()
         done = False
@@ -107,14 +124,10 @@ class ReinforceTrainer:
         while not done:
             action, _ = self.agent.get_action(obs)
             obs, _, terminated, truncated, _ = vis_env.step(action)
-            if record:
-                record_data.append(vis_env.render())
-            else:
-                vis_env.render()
+            record_data.append(vis_env.render())
+
             done = terminated or truncated
 
-        # TODO decorator function, will be needed for other agent training classes
-        if record:
-            record_gif(record_data)
-
         vis_env.close()
+
+        record_gif(record_data)
