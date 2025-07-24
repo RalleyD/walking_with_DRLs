@@ -18,10 +18,10 @@ GAMMA = 0.99    # discount factor on future steps
 ################################
 # Hyperparameters - walker2D
 ################################
-EPOCHS_WALKER = 10000   # episodes
+EPOCHS_WALKER = 100000   # episodes
 HIDDEN_LYR_1_WALKER = 64
 HIDDEN_LYR_2_WALKER = 64
-LR_WALKER = 0.0002
+LR_WALKER = 0.0001
 GAMMA_WALKER = 0.99    # discount factor on future steps
 
 ################################################################
