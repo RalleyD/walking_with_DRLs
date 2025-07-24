@@ -64,20 +64,6 @@ walker_returns = train_reinforce(EPOCHS_WALKER,
 x = np.arange(0, len(walker_returns), 1)
 y = walker_returns
 
-# fig, ax = plt.subplots(1, 1)
-# ax.plot(x, y)
-
-# ax.set_title(
-#     f"Reinforce Learning Curve, layers: {HIDDEN_LYR_1_WALKER}, {HIDDEN_LYR_2_WALKER}")
-# ax.set_xlabel("episode (n)")
-# ax.set_ylabel("returns (n)")
-
-# output_dir = "plots"
-# if not os.path.exists(output_dir):
-#     os.mkdir(output_dir)
-# fig.savefig(output_dir + "/reinforce-lc-walker.png", dpi=600)
-
-# plt.show()
 learning_rate_ma(x, np.array(
     y), title=f"Reinforce Learning Curve, layers: {HIDDEN_LYR_1_WALKER}, {HIDDEN_LYR_2_WALKER}")
 
