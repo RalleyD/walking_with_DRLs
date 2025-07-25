@@ -20,9 +20,7 @@ class PolicyNetwork(nn.Module):
         self.shared_net = nn.Sequential(
             nn.Linear(obs_dim, hidden_size1),
             nn.ReLU(),
-            nn.Linear(hidden_size1, 128),
-            nn.ReLU(),
-            nn.Linear(128, hidden_size2),
+            nn.Linear(hidden_size1, hidden_size2),
             nn.ReLU()
         )
 

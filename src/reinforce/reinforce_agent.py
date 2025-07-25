@@ -16,7 +16,8 @@ class ReinforceAgent:
         hidden_size1: int,
         hidden_size2: int,
         learning_rate: float,
-        gamma: float
+        gamma: float,
+        max_gradient_norm: float
     ):
         """
         Args:
@@ -26,10 +27,12 @@ class ReinforceAgent:
             hidden_size2: Size of the second hidden layer            
             learning_rate: The learning rate
             gamma: The discount factor
+            max_gradient_norm: gradient clipping factor
         """
         self.obs_dim = obs_dim
         self.action_dim = action_dim
         self.gamma = gamma
+        self._gradient_norm = max_gradient_norm
 
         self.policy = PolicyNetwork(
             obs_dim, action_dim, hidden_size1, hidden_size2)
@@ -52,6 +55,11 @@ class ReinforceAgent:
         obs_torch = torch.as_tensor(obs).float().unsqueeze(0)
         means, std_devs = self.policy(obs_torch)
 
+        # similarly to the reward returns, std_devs can vary
+        # significantly from 0 to unrealistically high values
+        # clamp the standard deviation to a reasonable range.
+        std_devs = torch.clamp(std_devs, min=1e-6, max=10.0)
+
         # get a normal distribution of the forward pass that
         # can be sampled
         norm_dist = torch.distributions.Normal(
@@ -62,8 +70,13 @@ class ReinforceAgent:
         # sample the actions from the predicted distributions
         # this is policy(a | s)
         action = norm_dist.sample()
-        # get the log probability of this action
-        prob = norm_dist.log_prob(action).mean()
+        # get the log probability of this action i.e
+        # how likely is the policy to chose all the joint
+        # angles together
+        # sum over the action dimensions
+        # n.b mean will cause artificial inflation of the
+        # probabilities, which will affect gradient magnitude
+        prob = norm_dist.log_prob(action).sum()
 
         return action.squeeze(0).numpy(), prob
 
@@ -74,14 +87,32 @@ class ReinforceAgent:
             rewards: The rewards received for taking that actions
         """
         action_rewards = self.compute_returns(rewards)
+
+        # scale the rewards due to the high variance
+        action_rewards = torch.tensor(action_rewards, dtype=torch.float32)
+        # action_rewards = np.array(action_rewards, dtype=np.float32)
+        if len(action_rewards) > 1:
+            action_rewards = action_rewards - \
+                action_rewards.mean() / (action_rewards.std() +
+                                         # add a very small value in the unlikely event all returns are equal (S.D is 0)
+                                         1e-6)
+
         loss = torch.tensor(0.0)
         # take the negative because we need gradient ascent
         for gt, log_prob in zip(action_rewards, log_probs):
             loss += -log_prob * gt
+
+        # to balance the different episode lengths, averange the loss.
+        loss = loss.mean()
+
         # determine the gradients
         # reset the gradient to prevent accumulation
         self.optimizer.zero_grad()
         loss.backward()
+        # clip the gradients (in place _)
+        torch.nn.utils.clip_grad_norm_(
+            self.policy.parameters(), self._gradient_norm)
+
         # update the policy's parameters
         self.optimizer.step()
 

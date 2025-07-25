@@ -77,10 +77,9 @@ class ReinforceTrainer:
 
             if episode_n % self.evaluate_interval-1 == 0:
                 logger.info(
-                    f"""
-                        \n=== Episode {episode_n} ===
-                          Mean reward from last {self.evaluate_interval} returns: {np.mean(episode_returns[-self.evaluate_interval:])}
-                    """
+                    f"\n=== Episode {episode_n} ===\n"
+                    f"     Mean reward from last {self.evaluate_interval}"
+                    f"returns: {np.mean(episode_returns[-self.evaluate_interval:])}\n"
                 )
 
             if episode_n % self.show_policy_interval-1 == 0:
@@ -95,13 +94,11 @@ class ReinforceTrainer:
 
         logger.info(
             f"=== Model Summary ===\n"
-            f"{summary(self.agent.policy, input_size=obs.shape[0])}\n"
+            f"{summary(self.agent.policy, input_size=(self.agent.obs_dim,))}\n"
             f"--- Epochs ---\n"
             f"    {self.n_episodes}\n"
-            f"--- Model State ---\n"
-            f"    {self.agent.policy.state_dict()}\n"
-            f"--- Optimiser State ---\n"
-            f"    {self.agent.optimizer.state_dict()}\n"
+            f"=== Agent input dimensions ===\n"
+            f"   (observation space): {self.agent.obs_dim}\n"
         )
 
         self.agent.save_model(checkpoint)
