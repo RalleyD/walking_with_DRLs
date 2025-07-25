@@ -88,7 +88,7 @@ class CustomLogger(object):
         log_path.mkdir(exist_ok=True)
 
         # create filename
-        log_name = f"{strftime("%Y-%m-%d_%H-%M-%S", localtime())}-{name}.log"
+        log_name = f"{strftime('%Y-%m-%d_%H-%M-%S', localtime())}-{name}.log"
 
         # create file handler
         file_hdlr = logging.FileHandler(
