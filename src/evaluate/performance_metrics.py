@@ -1,3 +1,11 @@
+from custom_logger import CustomLogger
+
+
+##############################################
+# logger                                     #
+##############################################
+logger = CustomLogger.get_project_logger()
+##############################################
 
 
 class PerformanceMetrics:
@@ -62,38 +70,47 @@ class PerformanceMetrics:
             self._ema_returns[-1]
         )
 
-    def convergence_time(self):
+    def stable_convergence_time(self):
         """
         Find when EMA first reaches and stays above target.
+        This two-pointer algorithm determines the longest
+        sustained period (n episodes) in the EMA returns list.
+        where the EMA stayed above the target threshold.
+        The method self-determines the stable 'sustained' duration.
+        This adds fairness to an agent with high training variance,
+        and where different models may reach convergence for different
+        durations.
         """
         target = self._best_performance * self._convergence_threshold
 
-        l = 0
-        h = 0
-        m = 0
-        cnt = 0
-        cnt2 = 0
+        left_ptr = 0
+        high_ptr = 0
+        convergence_point = 0
+        count_a = 0
+        count_b = 0
 
-        while l < len(self._ema_returns)-1:
-            if self._ema_returns[l] < target:
-                l += 1
-                h += 1
-            elif self._ema_returns[h] >= target and h < len(self._ema_returns)-1:
-                h += 1
-            elif cnt:
-                cnt2 = h - l
-                if cnt2 > cnt:
-                    cnt = cnt2
-                    m = l
-                l = h
+        while left_ptr < len(self._ema_returns)-1:
+            if self._ema_returns[left_ptr] < target:
+                left_ptr += 1
+                high_ptr += 1
+            elif self._ema_returns[high_ptr] >= target \
+                    and high_ptr < len(self._ema_returns)-1:
+                high_ptr += 1
+            elif count_a:
+                count_b = high_ptr - left_ptr
+                if count_b > count_a:
+                    count_a = count_b
+                    convergence_point = left_ptr
+                left_ptr = high_ptr
             else:
-                cnt = h - l
-                m = l
-                l = h
+                count_a = high_ptr - left_ptr
+                convergence_point = left_ptr
+                left_ptr = high_ptr
 
-        print(f"longest above thresh {cnt=}")
+        logger.info(f"\nLongest n_episodes above {target=}: {count_a}")
+        logger.info("    Convergence after %d episodes." % convergence_point)
 
-        return m
+        return convergence_point
 
     def stability_metrics(sefl):
         """
