@@ -11,11 +11,25 @@ PRJ_ROOT = Path(FILE_DIR).parent.parent
 
 def learning_rate_ma(x: Optional[np.array], y: np.array, title: Optional[str] = "Reinforce learning curve"):
 
+
+def learning_rate_ma(x: Optional[np.array], y: np.array,
+                     target_ep: int = None,
+                     convergence_ep: int = None,
+                     title: Optional[str] = "Reinforce learning curve"):
+
     if x is None:
         x = np.arange(0, len(y), 1)
 
     fig, ax = plt.subplots(1, 1)
     ax.plot(x, y, label="raw returns")
+
+    # target first reached
+    if target_ep:
+        ax.axvline(target_ep, color='r', label="target first reached")
+
+    # convergence point
+    if convergence_ep:
+        ax.axvline(convergence_ep, color='g', label="Stable convergence point")
 
     # SMA
     window = len(y) // 10
@@ -24,6 +38,7 @@ def learning_rate_ma(x: Optional[np.array], y: np.array, title: Optional[str] = 
     sma_x = np.arange(window, len(sma)+window, 1)
 
     ax.plot(sma_x, sma, label=f"moving average, {window=}")
+
 
     ax.grid(visible=True)
     ax.legend()
@@ -41,10 +56,12 @@ def learning_rate_ma(x: Optional[np.array], y: np.array, title: Optional[str] = 
     plt.show()
 
 
-def record_gif(gif_frames: list, fps=120, filename: str = "reinforce") -> None:
+def record_gif(gif_frames: list, fps=200, filename: str = "reinforce", epochs: int = None) -> None:
 
     out_dir = PRJ_ROOT / "recordings"
-    file = filename + '-' + datetime.now().strftime("%Y-%m-%d_%H_%M_%S") + ".gif"
+    epochs_str = str(epochs) + "epochs_" if epochs else ""
+    file = filename + '-' + epochs_str + \
+        datetime.now().strftime("%Y-%m-%d_%H_%M_%S") + ".gif"
     out_dir.mkdir(exist_ok=True)
 
     clip = ImageSequenceClip(gif_frames, fps=fps)
