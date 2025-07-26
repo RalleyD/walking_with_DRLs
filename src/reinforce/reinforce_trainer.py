@@ -98,9 +98,12 @@ class ReinforceTrainer:
             "returns": episode_returns
         }
 
+        model_summary = summary(
+            self.agent.policy, input_size=(self.agent.obs_dim,))
+
         logger.info(
             f"=== Model Summary ===\n"
-            f"{summary(self.agent.policy, input_size=(self.agent.obs_dim,))}\n"
+            f"{str(model_summary)}\n"
             f"--- Epochs ---\n"
             f"    {self.n_episodes}\n"
             f"=== Agent input dimensions ===\n"
@@ -125,7 +128,7 @@ class ReinforceTrainer:
         record_data = [initial_frame]
 
         while not done:
-            action, _ = self.agent.get_action(obs)
+            action, _, _ = self.agent.get_action(obs)
             obs, _, terminated, truncated, _ = vis_env.step(action)
             record_data.append(vis_env.render())
 
@@ -133,4 +136,5 @@ class ReinforceTrainer:
 
         vis_env.close()
 
-        record_gif(record_data)
+        # TODO add epoch to the filename
+        record_gif(record_data, epochs=self.n_episodes)

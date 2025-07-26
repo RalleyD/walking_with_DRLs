@@ -82,7 +82,7 @@ class ReinforceAgent:
         # get action entropy
         # high entropy - indicator of randomness
         # low entropy - indicator of determinism
-        entropy = norm_dist.entropy()
+        entropy = norm_dist.entropy().detach().mean()
 
         return action.squeeze(0).numpy(), prob, entropy
 
