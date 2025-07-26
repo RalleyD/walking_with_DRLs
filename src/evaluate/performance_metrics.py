@@ -72,7 +72,7 @@ class PerformanceMetrics:
             self._ema_returns.append(self._episode_returns[-1])
             return
 
-        ema = self._episode_returns[-1] * \
+        ema = episode_return * \
             self._ema_alpha + (1 - self._ema_alpha) * \
             self._ema_returns[-1]
 
@@ -80,7 +80,11 @@ class PerformanceMetrics:
             ema
         )
 
-        self._best_performance = max(self._ema_returns)
+        if self._best_performance is None:
+            self._best_performance = self._ema_returns[-1]
+        else:
+            self._best_performance = max(
+                self._ema_returns[-1], self._best_performance)
 
         if len(self._episode_returns)-1 % self._rolling_window_size == 0:
             # update rolling variance
@@ -140,7 +144,8 @@ class PerformanceMetrics:
         var = returns_window_np.var()
         self._rolling_var.append(var)
 
-        var_coeff = np.sqrt(var) / returns_window_np.mean()
+        var_coeff = np.sqrt(var) / (returns_window_np.mean() +
+                                    1e-6)  # avoids zero division error
         self._rolling_var_coef.append(var_coeff)
 
         # option 2, perform sliding windows on the final episode returns array - slow
@@ -148,12 +153,19 @@ class PerformanceMetrics:
     def exploration_trend(self):
         """
         Track how agent exploration changes over time
+
+        This works off of the agent't per-episode average entropy.
+        A high entropy indicates the agent is exploring more i.e randomness.
+        A low entropy indicates the agent is exploiting more i.e determinism.
+
+        A decaying exploration indicates learning progression.
+        Entropy that stays high is a sign of poor convergence or high noise.
         """
         # calculate moving average of entropy
         entropy_ma = 0
 
         if self._policy_entropies:
-            weights = np.ones_like(self._rolling_window_size) / \
+            weights = np.ones(self._rolling_window_size) / \
                 self._rolling_window_size
             entropy_ma = np.convolve(
                 self._policy_entropies, weights, mode='valid')
@@ -167,10 +179,11 @@ class PerformanceMetrics:
         # TODO refactor duplication
         target = self._best_performance * self._convergence_threshold
 
-        ema_above_target = np.where(self._ema_returns >= target)
+        ema_np = np.array(self._ema_returns)
+        indices = np.where(ema_np >= target)[0]
 
-        if len(ema_above_target):
-            sample_eff = ema_above_target[0]
+        if len(indices):
+            sample_eff = int(ema_np[0])
         else:
             sample_eff = 0
 

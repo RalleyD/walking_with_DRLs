@@ -39,13 +39,14 @@ class ReinforceAgent:
         self.optimizer = torch.optim.AdamW(
             self.policy.parameters(), lr=learning_rate)
 
-    def get_action(self, obs: np.array) -> np.array:
+    def get_action(self, obs: np.array) -> tuple:
         """Returns an action, conditioned on the policy and observation.
         Args:
             obs: Observation from the environment
         Returns:
             action: An action to be performed
             log_prob: The logarithm of the action probability
+            entropy: randomness indicator
         """
         # unsqueeze at axis 0:
         # consider the input observation a single mini batch
@@ -78,7 +79,12 @@ class ReinforceAgent:
         # probabilities, which will affect gradient magnitude
         prob = norm_dist.log_prob(action).sum()
 
-        return action.squeeze(0).numpy(), prob
+        # get action entropy
+        # high entropy - indicator of randomness
+        # low entropy - indicator of determinism
+        entropy = norm_dist.entropy()
+
+        return action.squeeze(0).numpy(), prob, entropy
 
     def update(self, log_probs, rewards):
         """Update the policy network's weights.

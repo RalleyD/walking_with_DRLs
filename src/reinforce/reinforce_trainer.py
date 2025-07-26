@@ -5,6 +5,7 @@ import glfw
 from src.reinforce.reinforce_agent import ReinforceAgent
 from src.util.plotter import record_gif
 from src.custom_logger import CustomLogger
+from src.evaluate.performance_metrics import PerformanceMetrics
 
 ########################################
 # logger
@@ -37,6 +38,7 @@ class ReinforceTrainer:
         self.n_episodes = n_episodes
         self.evaluate_interval = evaluate_interval
         self.show_policy_interval = show_policy_interval
+        self.metrics = PerformanceMetrics()
 
     def train(self):
         """Run the training loop.
@@ -51,11 +53,12 @@ class ReinforceTrainer:
 
             rewards = []
             log_probs = []
+            entropies = []
             current_episode_return = 0
 
             while not done:
                 # get the agent's action from the current observation
-                agent_action, log_prob = self.agent.get_action(obs)
+                agent_action, log_prob, entropy = self.agent.get_action(obs)
 
                 # perform action in the env, store the reward and the next obs
                 obs, reward, terminated, truncated, info = self.env.step(
@@ -65,6 +68,7 @@ class ReinforceTrainer:
 
                 rewards.append(reward)
                 log_probs.append(log_prob)
+                entropies.append(entropy)
 
                 current_episode_return += reward
 
@@ -74,6 +78,8 @@ class ReinforceTrainer:
 
             # print("\n=== Training stats: ===")
             # print("\tAverage episode length: ", np.mean(episode_lengths))
+            self.metrics.update(episode_return=current_episode_return,
+                                policy_entropy=np.mean(entropies))
 
             if episode_n % self.evaluate_interval-1 == 0:
                 logger.info(
@@ -107,7 +113,7 @@ class ReinforceTrainer:
 
     def show_policy(self):
         """
-        Run a single episode in the environemtn and render a GUI
+        Run a single episode in the environment and render a recording
         to view the agent's current policy.
         """
         logger.info("Recording episode")
