@@ -1,6 +1,6 @@
 import numpy as np
 
-from custom_logger import CustomLogger
+from src.custom_logger import CustomLogger
 
 
 ##############################################
@@ -38,9 +38,12 @@ class PerformanceMetrics:
 
     Final performance metric:
         Average return in the 90 % stable target.
+
+    TODO
+        wrapper function to return all metrics after training
     """
 
-    def __init__(self, ema_alpha=0.1, rolling_window_size=100, convergence_thresh=0.9):
+    def __init__(self, ema_alpha=0.5, rolling_window_size=100, convergence_thresh=0.9):
         self._ema_alpha = ema_alpha
         self._rolling_window_size = rolling_window_size
         self._convergence_threshold = convergence_thresh
@@ -115,15 +118,11 @@ class PerformanceMetrics:
             elif self._ema_returns[high_ptr] >= target \
                     and high_ptr < len(self._ema_returns)-1:
                 high_ptr += 1
-            elif count_a:
+            else:
                 count_b = high_ptr - left_ptr
                 if count_b > count_a:
                     count_a = count_b
                     convergence_point = left_ptr
-                left_ptr = high_ptr
-            else:
-                count_a = high_ptr - left_ptr
-                convergence_point = left_ptr
                 left_ptr = high_ptr
 
         logger.info(f"\nLongest n_episodes above {target=}: {count_a}")
@@ -175,17 +174,18 @@ class PerformanceMetrics:
     def sample_efficiency(self):
         """
         Episodes taken to reach convergance target.
+        Recommend not to use as stable convergence is more useful.
         """
         # TODO refactor duplication
         target = self._best_performance * self._convergence_threshold
 
         ema_np = np.array(self._ema_returns)
-        indices = np.where(ema_np >= target)[0]
+        target_indices = np.where(ema_np >= target)[0]
+        indices = target_indices[target_indices >= self._rolling_window_size]
+        sample_eff = 0
 
         if len(indices):
-            sample_eff = int(ema_np[0])
-        else:
-            sample_eff = 0
+            sample_eff = indices[0]
 
         return sample_eff
 
