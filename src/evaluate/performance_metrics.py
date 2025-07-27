@@ -89,7 +89,7 @@ class PerformanceMetrics:
             self._best_performance = max(
                 self._ema_returns[-1], self._best_performance)
 
-        if len(self._episode_returns)-1 % self._rolling_window_size == 0:
+        if len(self._episode_returns) % self._rolling_window_size-1 == 0:
             # update rolling variance
             self._stability_metrics()
 
@@ -149,7 +149,7 @@ class PerformanceMetrics:
 
         # option 2, perform sliding windows on the final episode returns array - slow
 
-    def exploration_trend(self):
+    def exploration_trend(self) -> np.array:
         """
         Track how agent exploration changes over time
 
