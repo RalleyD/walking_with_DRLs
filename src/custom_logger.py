@@ -2,7 +2,9 @@ import logging
 import sys
 from time import strftime, localtime
 from pathlib import Path
-from src.util.plotter import PRJ_ROOT
+
+FILE_DIR = Path(__file__).parent
+PRJ_ROOT = Path(FILE_DIR).parent
 
 
 class CustomLogger(object):
