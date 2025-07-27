@@ -1,6 +1,6 @@
 import numpy as np
 import gymnasium as gym
-from torchsummary import summary
+from torchinfo import summary
 import glfw
 from src.reinforce.reinforce_agent import ReinforceAgent
 from src.util.plotter import record_gif
@@ -89,7 +89,7 @@ class ReinforceTrainer:
                 )
 
             if episode_n % self.show_policy_interval-1 == 0:
-                self.show_policy()
+                self.show_policy(epoch=episode_n)
 
         checkpoint = {
             "epoch": self.n_episodes,
@@ -99,7 +99,8 @@ class ReinforceTrainer:
         }
 
         model_summary = summary(
-            self.agent.policy, input_size=(self.agent.obs_dim,))
+            self.agent.policy, input_size=(self.agent.obs_dim,),
+            device='cpu', verbose=0)
 
         logger.info(
             f"=== Model Summary ===\n"
@@ -114,7 +115,7 @@ class ReinforceTrainer:
 
         return episode_returns
 
-    def show_policy(self):
+    def show_policy(self, epoch: int):
         """
         Run a single episode in the environment and render a recording
         to view the agent's current policy.
@@ -137,4 +138,4 @@ class ReinforceTrainer:
         vis_env.close()
 
         # TODO add epoch to the filename
-        record_gif(record_data, epochs=self.n_episodes)
+        record_gif(record_data, epochs=epoch)
