@@ -1,7 +1,7 @@
 import gymnasium as gym
 from src.reinforce.reinforce_agent import ReinforceAgent
 from src.reinforce.reinforce_trainer import ReinforceTrainer
-from src.util.plotter import learning_rate_ma
+from src.util.plotter import learning_rate_ma, evaluation_figure_a_b
 import numpy as np
 import matplotlib.pyplot as plt
 import os
@@ -18,7 +18,7 @@ GAMMA = 0.99    # discount factor on future steps
 ################################
 # Hyperparameters - walker2D
 ################################
-EPOCHS_WALKER = 25000   # episodes
+EPOCHS_WALKER = 200   # episodes
 HIDDEN_LYR_1_WALKER = 128
 HIDDEN_LYR_2_WALKER = 128
 # use a low learning rate because the high variance will cause large gradient updates.
@@ -45,7 +45,7 @@ def train_reinforce(epochs: int,
 
     trainer = ReinforceTrainer(sim_env, reinforce_agent, epochs)
 
-    return trainer.train()
+    return trainer.train(), trainer
 
 ################################################################
 
@@ -55,19 +55,33 @@ def train_reinforce(epochs: int,
 #                 'InvertedPendulum-v4')
 
 
-walker_returns = train_reinforce(EPOCHS_WALKER,
-                                 HIDDEN_LYR_1_WALKER,
-                                 HIDDEN_LYR_2_WALKER,
-                                 LR_WALKER, GAMMA_WALKER,
-                                 "Walker2d-v4",
-                                 MAX_GRADIENT_NORM)
+walker_returns, reinforce_trainer = train_reinforce(EPOCHS_WALKER,
+                                                    HIDDEN_LYR_1_WALKER,
+                                                    HIDDEN_LYR_2_WALKER,
+                                                    LR_WALKER, GAMMA_WALKER,
+                                                    "Walker2d-v4",
+                                                    MAX_GRADIENT_NORM)
 
 ################################################################
 
 x = np.arange(0, len(walker_returns), 1)
 y = walker_returns
 
-learning_rate_ma(x, np.array(
-    y), title=f"Reinforce Learning Curve, layers: {HIDDEN_LYR_1_WALKER}, {HIDDEN_LYR_2_WALKER}")
+# rolling_var, var_coeff = reinforce_trainer.metrics.get_stability_metrics()
+
+# h line
+# target_reached = reinforce_trainer.metrics.sample_efficiency()
+
+# h line
+# stable_convergence = reinforce_trainer.metrics.stable_convergence_time()
+
+
+# learning_rate_ma(x, np.array(y),
+#                  #  target_ep=target_reached,
+#                  convergence_ep=stable_convergence,
+#                  title=f"Reinforce Learning Curve, layers: {HIDDEN_LYR_1_WALKER}, {HIDDEN_LYR_2_WALKER}"
+#                  )
+
+evaluation_figure_a_b(metrics_a=reinforce_trainer.metrics)
 
 #################################################################
