@@ -37,7 +37,6 @@ def evaluation_figure_a_b(metrics_a: PerformanceMetrics,
     for ax in axs[-1, 0:]:
         ax.remove()
     ax_ab = fig.add_subplot(gs[-1, 0:])
-    ax_ab.set_title(f"{name}: A/B Training stability - Normalised variance")
     ax_ab.grid(visible=True)
     ax_ab.legend()
 
@@ -76,10 +75,12 @@ def evaluation_figure_a_b(metrics_a: PerformanceMetrics,
             continue
         # plot coefficient of variance
         _, var_coeff = model_metrics.get_stability_metrics()
-        print(f"{var_coeff=}")
         x = np.arange(model_metrics._rolling_window_size,
-                      len(var_coeff) * model_metrics._rolling_window_size + 1)
+                      len(var_coeff) * model_metrics._rolling_window_size + 1,
+                      100)
         print(f"{x=}")
+        ax_ab.set_title(
+            f"{name}: A/B Training stability - Normalised variance")
         ax_ab.plot(
             x, var_coeff, 'bo')
         ax_ab.legend()
