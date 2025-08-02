@@ -129,10 +129,16 @@ class TD3Trainer:
                 s_next, reward, terminated, truncated, _, _ = self._env.step(
                     action)
                 done = terminated or truncated
-                time_steps += 1
 
                 replay_buffer.add(obs, action, reward, s_next, int(done))
+
+                if done:
+                    # reset the environment so learning can continue through this epoch/trial
+                    # training for 1e6 time steps will require multiple training episodes
+                    s_next, _ = self._env.reset()
+
                 obs = s_next
+                time_steps += 1
 
                 if time_steps % self._evaluate_interval == 0:
                     mean, sd = self.evaluate()
