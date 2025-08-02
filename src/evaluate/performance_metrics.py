@@ -191,3 +191,15 @@ class PerformanceMetrics:
 
     def get_stability_metrics(self) -> tuple:
         return self._rolling_var, self._rolling_var_coef
+
+    def update_td3_average(self, mean: list, sd: list):
+        """
+        expected total 10 * (1e6 / 5e3) data points
+        for visualisation, require mean and sd over the 10 sets.
+        """
+        self.mean_episode_returns.append(mean)
+
+        self._episode_sd.append(sd)
+
+    def get_average_learning_curve(self):
+        return np.mean(self.mean_eposode_returns, axis=0), np.sd(self._episode_sd, axis=0)

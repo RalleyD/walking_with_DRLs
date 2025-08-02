@@ -51,20 +51,14 @@ class ActorCriticAgent:
         obs_dim: int,
         action_dim: int,
         learning_rate: float,
-        soft_target_update_tau=0.005,
         gamma: float,
-        max_gradient_norm: float,
+        soft_target_update_tau=0.005,
     ):
         # TODO consider a base Agent class for inheritence
         self._obs_dim = obs_dim
         self._action_dim = action_dim
         self._gamma = gamma
-        self._gradient_norm = max_gradient_norm
-        # TODO move to separate class
-        self._replay_buffer_size = replay_buf_size
-        self._replay_buffer = []
-        self._replay_buf_ptr = 0
-        self._learning_rate = 0
+        self._learning_rate = learning_rate
         self._tau = soft_target_update_tau
 
         # Actor
