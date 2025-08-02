@@ -2,7 +2,7 @@ import torch
 import torch.nn as nn
 import numpy as np
 from src.TD3.critic_network import CriticPolicy
-from TD3.actor_network import ActorPolicy
+from src.TD3.actor_network import ActorPolicy
 
 
 class ReplayBuffer:
@@ -157,7 +157,7 @@ class ActorCriticAgent:
             self._soft_update(self.critic1, self.targetQ1)
             self._soft_updates(self.critic2, self.targetQ2)
 
-    def _soft_update(self, source: torch.Module, target: torch.Module):
+    def _soft_update(self, source: nn.Module, target: nn.Module):
         for param, target_param in zip(source.parameters(),
                                        target.parameters()):
             target_param.copy_(

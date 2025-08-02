@@ -7,7 +7,7 @@ class ActorPolicy(nn.Module):
     def __init__(self, obs_dim, action_dim, max_action=1.0):
         super().__init__()
 
-        self._max_action = max_action
+        self._max_action = torch.Tensor([max_action])
 
         # define sequential model, without RELU on the output
         self.policy_net = nn.Sequential(

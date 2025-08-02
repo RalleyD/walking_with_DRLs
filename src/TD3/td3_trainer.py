@@ -90,12 +90,12 @@ class TD3Trainer:
 
                     # direct conversion to tensors during stacking should be more efficient
                     states_tensor = torch.stack(
-                            [torch.tensor(state) for state in states], dim=0)
+                        [torch.tensor(state, dtype=torch.float32) for state in states], dim=0)
                     actions_tensor = torch.stack(
-                            [torch.tensor(action) for action in actions], dim=0)
+                        [torch.tensor(action, dtype=torch.float32) for action in actions], dim=0)
                     rewards_tensor = torch.stack(
-                            [torch.tensor(reward) for reward in rewards], dim=0)
-                        next_states_tensor = torch.stack([torch.tensor(state_n)
+                        [torch.tensor(reward, dtype=torch.float32) for reward in rewards], dim=0)
+                    next_states_tensor = torch.stack([torch.tensor(state_n, dtype=torch.float32)
                                                       for state_n in next_states],
                                                      dim=0)
                     done_tensor = torch.stack(
