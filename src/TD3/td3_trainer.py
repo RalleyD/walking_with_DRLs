@@ -2,7 +2,7 @@ import torch
 import torch.nn as nn
 import gymnasium as gym
 import numpy as np
-from actor_critic_agent import ActorCriticAgent, ReplayBuffer
+from src.TD3.actor_critic_agent import ActorCriticAgent, ReplayBuffer
 from src.evaluate.performance_metrics import PerformanceMetrics
 from src.util.plotter import record_gif
 from src.custom_logger import CustomLogger
@@ -52,7 +52,7 @@ class TD3Trainer:
 
         for trial in range(self._n_trials):
             # start a new episode
-            logger.info("Training episode: ", trial)
+            logger.info("Training episode: %d" % trial)
             done = False
             obs, _ = self._env.reset()
             exploration_noise = 0
@@ -63,73 +63,83 @@ class TD3Trainer:
             eval_sds = []
             while time_steps < self._epochs:
                 if time_steps < self._update_start:
-                    logger.info("random action sampling, step: ", time_steps)
+                    logger.info("random action sampling, step: %d" %
+                                time_steps)
                     # randomly sample the action space
                     action = self._env.action_space.sample()
                 else:
-                    logger.info("Model action training, step: ", time_steps)
+                    logger.info("Model action training, step: %d" % time_steps)
                     # get action with some clipped exploration noise
                     action = self.agent.get_action(obs)
                     exploration_noise = torch.clamp(torch.randn_like(
                         torch.tensor(action), dtype=torch.float32) * 0.1,
-                        -0.5, 0.5)
-                    action += exploration_noise
+                        -0.5, 0.5).numpy()
+                    action = np.add(action, exploration_noise)
 
-                    if replay_buffer.min_buf_size:
-                        # sample a mini-batch of replays
-                        states, actions, rewards, next_states, dones = zip(
-                            *replay_buffer.sample(self._batch_size))
-
-                        # direct conversion to tensors during stacking should be more efficient
-                        states_tensor = torch.stack(
-                            [torch.tensor(state) for state in states], dim=0)
-                        actions_tensor = torch.stack(
-                            [torch.tensor(action) for action in actions], dim=0)
-                        rewards_tensor = torch.stack(
-                            [torch.tensor(reward) for reward in rewards], dim=0)
-                        next_states_tensor = torch.stack([torch.tensor(state_n)
-                                                          for state_n in next_states],
-                                                         dim=0)
-                        done_tensor = torch.stack(
-                            [torch.tensor(done) for done in dones], dim=0
-                        )
-
-                        target_actions = self.agent.get_target_action(
-                            next_states_tensor)
-
-                        clipped_noise = torch.clamp(
-                            torch.rand_like(
-                                target_actions, dtype=torch.float32
-                                # see Fujimoto et al. Evaluation.
-                            ) * 0.2, -0.5, 0.5
-                        )
-
-                        target_action_eps = target_actions + clipped_noise
-
-                        # compute Q_target = r + gamma * min(Q1', Q2')
-                        q1_targets = self.agent.get_target_q1(
-                            target_action_eps, next_states_tensor)
-                        q2_targets = self.agent.get_target_q2(
-                            target_action_eps, next_states_tensor)
-
-                        # done tensor ensures that terminal states (1) have no future value when updating targets
-                        q_targets = rewards_tensor + self.agent._gamma * \
-                            (1 - done_tensor) * torch.min(q1_targets, q2_targets,
-                                                          dim=1).values  # returns a NamedTuple
-
-                        self.agent.update_critics(
-                            actions_tensor, states_tensor, q_targets)
-
-                        if trial % self._actor_update_delay == 0:
-                            # update actor
-                            self.agent.update_actor(states_tensor)
-                            # update target networks
-                            self.agent.update_target_networks()
-
-                s_next, reward, terminated, truncated, _, _ = self._env.step(
+                # Take action and update replay buffer
+                s_next, reward, terminated, truncated, _ = self._env.step(
                     action)
                 done = terminated or truncated
                 replay_buffer.add(obs, action, reward, s_next, int(done))
+
+                # Model learning
+                if time_steps >= self._update_start and replay_buffer.min_buf_size:
+                    # sample a mini-batch of replays
+                    states, actions, rewards, next_states, dones = zip(
+                        *replay_buffer.sample(self._batch_size))
+
+                    # direct conversion to tensors during stacking should be more efficient
+                    states_tensor = torch.stack(
+                            [torch.tensor(state) for state in states], dim=0)
+                    actions_tensor = torch.stack(
+                            [torch.tensor(action) for action in actions], dim=0)
+                    rewards_tensor = torch.stack(
+                            [torch.tensor(reward) for reward in rewards], dim=0)
+                        next_states_tensor = torch.stack([torch.tensor(state_n)
+                                                      for state_n in next_states],
+                                                     dim=0)
+                    done_tensor = torch.stack(
+                        [torch.tensor(done) for done in dones], dim=0
+                    )
+
+                    target_actions = self.agent.get_target_action(
+                        next_states_tensor)
+
+                    clipped_noise = torch.clamp(
+                        torch.rand_like(
+                            target_actions, dtype=torch.float32
+                            # see Fujimoto et al. Evaluation.
+                        ) * 0.2, -0.5, 0.5
+                    )
+
+                    target_action_eps = target_actions + clipped_noise
+
+                    # compute Q_target = r + gamma * min(Q1', Q2')
+                    q1_targets = self.agent.get_target_q1(
+                        target_action_eps, next_states_tensor)
+                    q2_targets = self.agent.get_target_q2(
+                        target_action_eps, next_states_tensor)
+
+                    # done tensor ensures that terminal states (1) have no future value when updating targets
+                    q_targets = rewards_tensor + self.agent._gamma * \
+                        (1 - done_tensor) * torch.min(q1_targets, q2_targets,
+                                                      dim=1).values  # returns a NamedTuple
+
+                    self.agent.update_critics(
+                        actions_tensor, states_tensor, q_targets)
+
+                    if trial % self._actor_update_delay == 0:
+                        # update actor
+                        self.agent.update_actor(states_tensor)
+                        # update target networks
+                        self.agent.update_target_networks()
+
+                if time_steps % self._evaluate_interval == 0:
+                    mean, sd = self.evaluate()
+                    logger.info(
+                        "Evaluating model - Time step: %d - Mean returns: %3.2f" % (time_steps, mean))
+                    eval_means.append(mean)
+                    eval_sds.append(sd)
 
                 if done:
                     # reset the environment so learning can continue through this epoch/trial
@@ -139,13 +149,7 @@ class TD3Trainer:
                 obs = s_next
                 time_steps += 1
 
-                if time_steps % self._evaluate_interval == 0:
-                    mean, sd = self.evaluate()
-                    logger.info(
-                        "Evaluating model - Time step: %d - Mean returns: %3.2f" % (time_steps, mean))
-                    eval_means.append(mean)
-                    eval_sds.append(sd)
-
+            # at the end of each trial, update the learning rate data
             self.metrics.update_td3_average(eval_means, eval_sds)
 
     def evaluate(self, eval_episodes=10):
