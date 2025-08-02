@@ -129,7 +129,6 @@ class TD3Trainer:
                 s_next, reward, terminated, truncated, _, _ = self._env.step(
                     action)
                 done = terminated or truncated
-
                 replay_buffer.add(obs, action, reward, s_next, int(done))
 
                 if done:

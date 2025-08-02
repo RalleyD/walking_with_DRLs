@@ -31,7 +31,6 @@ class ReplayBuffer:
             self._buf_ptr = (self._buf_ptr + 1) % self._buf_size
         else:
             self._replay_buf.append(args)
-            self._min_batch_samples += 1
             self.min_buf_size = len(
                 self._replay_buf) >= self._min_batch_samples
 
