@@ -1,8 +1,11 @@
 import torch
 import torch.nn as nn
 import numpy as np
+from pathlib import Path
+from typing import Optional
 from src.TD3.critic_network import CriticPolicy
 from src.TD3.actor_network import ActorPolicy
+from src.util.plotter import PRJ_ROOT
 
 
 class ReplayBuffer:
@@ -27,7 +30,8 @@ class ReplayBuffer:
         """
         if len(self._replay_buf) == self._buf_size:
             # circular update
-            self._replay_buf[self._buf_ptr] = args
+            self._replay_buf[int(self._buf_ptr)] = args
+            # may yield a float
             self._buf_ptr = (self._buf_ptr + 1) % self._buf_size
         else:
             self._replay_buf.append(args)
@@ -137,8 +141,8 @@ class ActorCriticAgent:
         q1_loss_fn = nn.MSELoss(reduction="mean")
         q2_loss_fn = nn.MSELoss(reduction="mean")
         q_loss = q1_loss_fn(
-            self.agent.get_q1(actions, states), q_targets) + \
-            q2_loss_fn(self.agent.get_q2(
+            self.get_q1(actions, states), q_targets) + \
+            q2_loss_fn(self.get_q2(
                 actions, states), q_targets)
 
         # TODO move to critic agent update method
@@ -155,12 +159,26 @@ class ActorCriticAgent:
         with torch.no_grad():
             self._soft_update(self.actor, self.target_action)
             self._soft_update(self.critic1, self.targetQ1)
-            self._soft_updates(self.critic2, self.targetQ2)
+            self._soft_update(self.critic2, self.targetQ2)
 
     def _soft_update(self, source: nn.Module, target: nn.Module):
         for param, target_param in zip(source.parameters(),
                                        target.parameters()):
             target_param.copy_(
-                src=self._tau * param.data +
+                self._tau * param.data +
                 (1 - self._tau) * target_param.data
             )
+
+    def save_model(self, state_data: dict, out_path: Optional[Path] = None) -> None:
+        """Save model, state and experiment details
+        TODO move to base class"""
+        from datetime import datetime
+        filename = "td3-" + datetime.now().strftime("%Y-%m-%d_%H_%M_%S") + ".pth"
+
+        if out_path is None:
+            out_path = PRJ_ROOT / "models"
+
+        print(
+            f"\nSaving model state: {', '.join(state_data.keys())} to {out_path / filename}.")
+
+        torch.save(state_data, out_path / filename)

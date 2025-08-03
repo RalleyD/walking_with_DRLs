@@ -2,6 +2,7 @@ import torch
 import torch.nn as nn
 import gymnasium as gym
 import numpy as np
+from torchinfo import summary
 from src.TD3.actor_critic_agent import ActorCriticAgent, ReplayBuffer
 from src.evaluate.performance_metrics import PerformanceMetrics
 from src.util.plotter import record_gif
@@ -27,7 +28,7 @@ class TD3Trainer:
                  actor_update_delay: int = 2,  # as per academic paper!
                  evaluate_interval: int = 5000,  # as per academic paper!
                  show_policy_interval: int = 10000,
-                 epochs: int = 1e6,  # as per academic paper!
+                 time_steps: int = 1e6,  # as per academic paper!
                  ):
         # TODO consider base trainer class for inheritence
         self._env = env
@@ -40,7 +41,7 @@ class TD3Trainer:
         self._update_start = policy_update_start
         self._batch_size = replay_batch_size
         self._actor_update_delay = actor_update_delay
-        self._epochs = epochs
+        self._time_steps = time_steps
 
     def train(self):
         """
@@ -51,24 +52,26 @@ class TD3Trainer:
         replay_buffer = ReplayBuffer.init(self._replay_buf_size)
 
         for trial in range(self._n_trials):
+            np.random.seed(trial)
+            torch.manual_seed(trial)
             # start a new episode
-            logger.info("Training episode: %d" % trial)
+            logger.info("Training trial: %d" % trial)
             done = False
-            obs, _ = self._env.reset()
+            obs, _ = self._env.reset(seed=trial)
             exploration_noise = 0
 
-            # count all time step per episode
-            time_steps = 0
+            # count all time step per episode - start from one to avoid 0 mod interval.
+            time_steps = 1
             eval_means = []
             eval_sds = []
-            while time_steps < self._epochs:
-                if time_steps < self._update_start:
-                    logger.info("random action sampling, step: %d" %
-                                time_steps)
+            while time_steps <= self._time_steps:
+                if time_steps <= self._update_start:
+                    # logger.info("random action sampling, step: %d" %
+                    #             time_steps)
                     # randomly sample the action space
                     action = self._env.action_space.sample()
                 else:
-                    logger.info("Model action training, step: %d" % time_steps)
+                    # logger.info("Model action training, step: %d" % time_steps)
                     # get action with some clipped exploration noise
                     action = self.agent.get_action(obs)
                     exploration_noise = torch.clamp(torch.randn_like(
@@ -122,8 +125,7 @@ class TD3Trainer:
 
                     # done tensor ensures that terminal states (1) have no future value when updating targets
                     q_targets = rewards_tensor + self.agent._gamma * \
-                        (1 - done_tensor) * torch.min(q1_targets, q2_targets,
-                                                      dim=1).values  # returns a NamedTuple
+                        (1 - done_tensor) * torch.min(q1_targets, q2_targets)
 
                     self.agent.update_critics(
                         actions_tensor, states_tensor, q_targets)
@@ -135,7 +137,8 @@ class TD3Trainer:
                         self.agent.update_target_networks()
 
                 if time_steps % self._evaluate_interval == 0:
-                    mean, sd = self.evaluate()
+                    mean, sd = self.evaluate(current_time_step=time_steps,
+                                             current_trial=trial)
                     logger.info(
                         "Evaluating model - Time step: %d - Mean returns: %3.2f" % (time_steps, mean))
                     eval_means.append(mean)
@@ -144,7 +147,7 @@ class TD3Trainer:
                 if done:
                     # reset the environment so learning can continue through this epoch/trial
                     # training for 1e6 time steps will require multiple training episodes
-                    s_next, _ = self._env.reset()
+                    s_next, _ = self._env.reset(seed=trial)
 
                 obs = s_next
                 time_steps += 1
@@ -152,7 +155,43 @@ class TD3Trainer:
             # at the end of each trial, update the learning rate data
             self.metrics.update_td3_average(eval_means, eval_sds)
 
-    def evaluate(self, eval_episodes=10):
+        model_summary = summary(
+            self.agent.actor, input_size=(self.agent._obs_dim,),
+            device='cpu', verbose=0)
+
+        logger.info(
+            f"=== TD3 Model Summary ===\n"
+            f"{str(model_summary)}\n"
+            f"--- Epochs / timesteps ---\n"
+            f"    {self._time_steps}\n"
+            f"--- Trials ---\n"
+            f"    {self._n_trials}\n"
+            f"=== Agent input dimensions ===\n"
+            f"   (observation space): {self.agent._obs_dim}\n"
+        )
+
+        # TODO dataclass
+        checkpoint = {
+            "epoch": self._time_steps,
+            "trials": self._n_trials,
+            "actor_state_dict": self.agent.actor.state_dict(),
+            "actor_optimiser_state_dict": self.agent.actor_optimizer.state_dict(),
+            "critic_1_state": self.agent.critic1.state_dict(),
+            "critic_1_optimiser": self.agent.critic1_optimizer.state_dict(),
+            "critic_2_state": self.agent.critic2.state_dict(),
+            "critic_2_optimiser": self.agent.critic2_optimizer.state_dict(),
+            "target_actor_state": self.agent.target_action.state_dict(),
+            "target_actor_optimiser": self.agent.target_actor_optimizer.state_dict(),
+            "target_critic_1": self.agent.targetQ1.state_dict(),
+            "target_critic_1_optimiser": self.agent.tq1_optimizer.state_dict(),
+            "target_critic_2": self.agent.targetQ2.state_dict(),
+            "target_critic_2_optimiser": self.agent.tq2_optimizer.state_dict(),
+            "returns": self.metrics.get_average_learning_curve()[0]
+        }
+
+        self.agent.save_model(checkpoint)
+
+    def evaluate(self, current_time_step: int, current_trial: int, eval_episodes=10):
         # TODO this can potentially be part of the base class implementation
         # set model to eval mode
         self.agent.actor.eval()
@@ -187,9 +226,11 @@ class TD3Trainer:
 
         eval_env.close()
 
-        # record data
-        record_gif(eval_frames,
-                   filename="TD3",
-                   epochs=10)
+        if current_time_step > 0 and \
+                current_time_step % self._time_steps == 0:
+            # record data
+            record_gif(eval_frames,
+                       filename=f"TD3-Trial-{current_trial}",
+                       epochs=current_time_step)
 
         return np.mean(episode_returns), np.std(episode_returns)

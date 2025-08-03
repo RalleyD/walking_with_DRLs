@@ -25,7 +25,8 @@ PRJ_ROOT = Path(FILE_DIR).parent.parent
 def evaluation_figure_a_b(metrics_a: PerformanceMetrics,
                           model_a_name: str = "REINFORCE",
                           metrics_b: PerformanceMetrics = None,
-                          model_b_name: str = "TD3"):
+                          model_b_name: str = "TD3",
+                          title="A-B training comparison:"):
     rows = 3
     cols = 2
 
@@ -82,8 +83,14 @@ def evaluation_figure_a_b(metrics_a: PerformanceMetrics,
         ax_ab.set_title(
             f"{name}: A/B Training stability - Normalised variance")
         ax_ab.plot(
-            x, var_coeff, 'bo')
+            x, var_coeff, label=name)  # 'bo')
         ax_ab.legend()
+
+    title_b_part = "vs " + model_b_name if model_b_name else ""
+    title_a_part = f" {model_a_name} {title_b_part}"
+    title = title + title_a_part
+
+    save_plot(title, fig)
 
     plt.show()
 
@@ -97,6 +104,12 @@ def learning_rate_ma(x: Optional[np.array], y: np.array,
 
     _lc_axis(x, y, target_ep, convergence_ep, title, ax)
 
+    save_plot(title, fig)
+
+    plt.show()
+
+
+def save_plot(title, fig):
     output_dir = PRJ_ROOT / "plots"
     output_dir.mkdir(exist_ok=True)
     out_file = title.replace(" ", "-").replace(",",
@@ -104,14 +117,12 @@ def learning_rate_ma(x: Optional[np.array], y: np.array,
 
     fig.savefig(output_dir / out_file, dpi=600)
 
-    plt.show()
-
 
 def _lc_axis(x, y, target_ep, convergence_ep, title, ax):
     if x is None:
         x = np.arange(0, len(y), 1)
 
-    ax.plot(x, y, label="raw returns")
+    ax.plot(x, y, label="returns")
 
     # target first reached
     if target_ep:
@@ -123,11 +134,15 @@ def _lc_axis(x, y, target_ep, convergence_ep, title, ax):
 
     # SMA
     window = len(y) // 10
+    if window == 0:
+        raise ValueError("SMA window too small: %d" % window)
     weights = np.ones(window) / window
     sma = np.convolve(y, weights, mode='valid')
-    sma_x = np.arange(window, len(sma)+window, 1)
+    # sma_x = np.arange(window*50, (len(sma) + window)*50, 50)
+    window_scaled = window*50
+    sma_x = x[window-1:]
 
-    ax.plot(sma_x, sma, label=f"moving average, {window=}")
+    ax.plot(sma_x, sma, label=f"moving average, window={window_scaled}")
 
     ax.grid(visible=True)
     ax.legend()
