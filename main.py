@@ -38,7 +38,7 @@ MAX_GRADIENT_NORM = 0.5  # clips the gradient norms for all the policy parameter
 # Hyperparameters - walker2D
 ################################
 
-TD3_LR_WALKER = 0.0005
+TD3_LR_WALKER = 0.0003
 TD3_GAMMA_WALKER = 0.99
 TD3_TIME_STEPS = int(1e6)
 TD3_N_TRIALS = 10

@@ -88,20 +88,26 @@ class ActorCriticAgent:
         self.target_action = ActorPolicy(
             self._obs_dim, self._action_dim, max_action=1
         )
-        self.target_actor_optimizer = torch.optim.AdamW(
-            self.target_action.parameters(), lr=learning_rate)
+
+        self.target_action.load_state_dict(
+            self.actor.state_dict()
+        )
 
         self.targetQ1 = CriticPolicy(
             self._obs_dim, self._action_dim
         )
-        self.tq1_optimizer = torch.optim.AdamW(
-            self.targetQ1.parameters(), lr=learning_rate)
+
+        self.targetQ1.load_state_dict(
+            self.critic1.state_dict()
+        )
 
         self.targetQ2 = CriticPolicy(
             self._obs_dim, self._action_dim
         )
-        self.tq2_optimizer = torch.optim.AdamW(
-            self.targetQ2.parameters(), lr=learning_rate)
+
+        self.targetQ2.load_state_dict(
+            self.critic2.state_dict()
+        )
 
     def get_action(self, obs: np.array) -> np.ndarray:
         obs_torch = torch.as_tensor(obs).float().unsqueeze(0)
@@ -133,25 +139,37 @@ class ActorCriticAgent:
 
         self.actor_optimizer.zero_grad()
         actor_loss.backward()
+        total_grad_norm = 0
+
+        for param in self.actor.parameters():
+            if param.grad is not None:
+                total_grad_norm += param.grad.data.norm(2).item() ** 2
+        total_grad_norm = total_grad_norm ** 0.5
+
         self.actor_optimizer.step()
+
+        return total_grad_norm
 
     def update_critics(self, actions: torch.Tensor, states: torch.Tensor, q_targets: torch.Tensor):
         # MSE loss functions (mean!)
         # using the same loss function will accumulate
         q1_loss_fn = nn.MSELoss(reduction="mean")
         q2_loss_fn = nn.MSELoss(reduction="mean")
-        q_loss = q1_loss_fn(
-            self.get_q1(actions, states), q_targets) + \
-            q2_loss_fn(self.get_q2(
-                actions, states), q_targets)
 
-        # TODO move to critic agent update method
+        q1_pred = self.get_q1(states, actions)
+        q2_pred = self.get_q2(states, actions)
+
+        q_loss = q1_loss_fn(q1_pred, q_targets) + \
+            q2_loss_fn(q2_pred, q_targets)
+
         self.critic1_optimizer.zero_grad()
         self.critic2_optimizer.zero_grad()
         q_loss.backward()
 
         self.critic1_optimizer.step()
         self.critic2_optimizer.step()
+
+        return q1_pred, q2_pred
 
     def update_target_networks(self):
         # no gradient tracking or accumulation required for this process
