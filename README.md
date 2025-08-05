@@ -15,7 +15,9 @@ Evaluating the performance of DRLs against REINFORCE baseline
   - clamp the S.Ds to provide numerical stability.
   - S.D -> 0, confident predictions
   - S.D -> inf, random predictions (uncertain)
-
+- training time
+  - 10 trials of 1M time steps (recommended from TD3 literature) takes too long. At least, for an M1 macbook pro.
+  - reducing to 5 trials. Which, still showed decent perceivable walking performance from TD3 i.e ~4200 mean reward.
 
 # Walker2D environment
 

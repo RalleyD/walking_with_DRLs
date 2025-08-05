@@ -1,5 +1,6 @@
 import numpy as np
 import gymnasium as gym
+import torch
 from torchinfo import summary
 import glfw
 from src.reinforce.reinforce_agent import ReinforceAgent
@@ -16,13 +17,18 @@ logger = CustomLogger.get_project_logger()
 
 class ReinforceTrainer:
     """Train a REINFORCE agent on a given gym environment.
+
+    TODOs
+    per-timestep evaluation for better A/B comparison
     """
 
     def __init__(self,
                  env: gym,
                  agent: ReinforceAgent,
                  n_episodes: int,
-                 evaluate_interval: int = 100,
+                 n_trials: int = 10,
+                 n_timesteps: int = 1e6,
+                 evaluate_interval: int = 5000,
                  show_policy_interval: int = 10000
                  ):
         """
@@ -38,82 +44,129 @@ class ReinforceTrainer:
         self.n_episodes = n_episodes
         self.evaluate_interval = evaluate_interval
         self.show_policy_interval = show_policy_interval
+        self._n_trials = n_trials,
+        self._n_timesteps = int(n_timesteps)
         self.metrics = PerformanceMetrics()
 
     def train(self):
         """Run the training loop.
         """
-        # episode_lengths = []
-        episode_returns = []
+        # TODO torch seeding!
 
-        for episode_n in range(self.n_episodes):
-            # start a new episode
-            done = False
-            obs, _ = self.env.reset()
+        for trial in self._n_trials:
+            current_time_step = 0
+            next_eval_interval = 1
+            episode_returns = []
+            eval_interval = self.evaluate_interval
 
-            rewards = []
-            log_probs = []
-            entropies = []
-            current_episode_return = 0
+            while current_time_step < self._n_timesteps:
+                episode_done = False
+                # start a new episode
+                obs, _ = self.env.reset(seed=trial)
 
-            while not done:
-                # get the agent's action from the current observation
-                agent_action, log_prob, entropy = self.agent.get_action(obs)
+                rewards = []
+                log_probs = []
+                entropies = []
+                current_episode_return = 0
 
-                # perform action in the env, store the reward and the next obs
-                obs, reward, terminated, truncated, info = self.env.step(
-                    agent_action)
+                while not episode_done:
+                    # get the agent's action from the current observation
+                    agent_action, log_prob, entropy = self.agent.get_action(
+                        obs)
 
-                done = terminated or truncated
+                    # perform action in the env, store the reward and the next obs
+                    obs, reward, terminated, truncated, _ = self.env.step(
+                        agent_action)
 
-                rewards.append(reward)
-                log_probs.append(log_prob)
-                entropies.append(entropy)
+                    episode_done = terminated or truncated
 
-                current_episode_return += reward
+                    rewards.append(reward)
+                    log_probs.append(log_prob)
+                    entropies.append(entropy)
 
-            self.agent.update(log_probs, rewards)
-            # episode_lengths.append(len(rewards))
-            episode_returns.append(current_episode_return)
+                    current_episode_return += reward
 
-            # print("\n=== Training stats: ===")
-            # print("\tAverage episode length: ", np.mean(episode_lengths))
-            self.metrics.update(episode_return=current_episode_return,
-                                policy_entropy=np.mean(entropies))
+                    current_time_step += 1
 
-            if episode_n % self.evaluate_interval-1 == 0:
-                logger.info(
-                    f"\n=== Episode {episode_n} ===\n"
-                    f"     Mean reward from last {self.evaluate_interval}"
-                    f"returns: {np.mean(episode_returns[-self.evaluate_interval:])}\n"
-                )
+                self.agent.update(log_probs, rewards)
+                episode_returns.append(current_episode_return)
 
-            if episode_n % self.show_policy_interval-1 == 0:
-                self.show_policy(epoch=episode_n)
+                # maybe evaluate
+                if current_time_step >= eval_interval:
+                    means, sds = self.evaluate(current_time_step,
+                                               trial)
+                    # update performance metrics (x, y) == (time_step, mean_returns)
+                    self.metrics.update_reinforce_average(
+                        current_time_step, means, sds)
+                    next_eval_interval += 1
+                    eval_interval = self.evaluate_interval * next_eval_interval
 
-        checkpoint = {
-            "epoch": self.n_episodes,
-            "model_state_dict": self.agent.policy.state_dict(),
-            "optimiser_state_dict": self.agent.optimizer.state_dict(),
-            "returns": episode_returns
-        }
+            checkpoint = {
+                "epoch": self.n_episodes,
+                "model_state_dict": self.agent.policy.state_dict(),
+                "optimiser_state_dict": self.agent.optimizer.state_dict(),
+                "returns": episode_returns
+            }
 
-        model_summary = summary(
-            self.agent.policy, input_size=(self.agent.obs_dim,),
-            device='cpu', verbose=0)
+            model_summary = summary(
+                self.agent.policy, input_size=(self.agent.obs_dim,),
+                device='cpu', verbose=0)
 
-        logger.info(
-            f"=== Model Summary ===\n"
-            f"{str(model_summary)}\n"
-            f"--- Epochs ---\n"
-            f"    {self.n_episodes}\n"
-            f"=== Agent input dimensions ===\n"
-            f"   (observation space): {self.agent.obs_dim}\n"
-        )
+            logger.info(
+                f"=== Model Summary ===\n"
+                f"{str(model_summary)}\n"
+                f"--- Epochs ---\n"
+                f"    {self.n_episodes}\n"
+                f"=== Agent input dimensions ===\n"
+                f"   (observation space): {self.agent.obs_dim}\n"
+            )
 
-        self.agent.save_model(checkpoint)
+            self.agent.save_model(checkpoint)
 
         return episode_returns
+
+    def evaluate(self, current_time_step: int, current_trial: int, eval_episodes=10):
+        # TODO this can potentially be part of the base class implementation
+        # set model to eval mode
+        self.agent.policy.eval()
+
+        # make a new gym env with the same spec as the one used for training
+        eval_env = gym.make(self.env.spec.id, render_mode="rgb_array")
+        eval_frames = []
+        episode_returns = []
+
+        with torch.no_grad():
+            for ep in range(eval_episodes):
+                obs, _ = eval_env.reset(seed=current_trial)
+                episode_reward = 0
+                done = False
+
+                while not done:
+                    # get an action w/ no exploration noise
+                    action = self.agent.get_action(obs)
+                    obs, reward, terminated, truncated, _ = eval_env.step(
+                        action)
+                    done = terminated or truncated
+                    # get the cumulative or average return over all the time steps
+                    episode_reward += reward
+                    if ep == eval_episodes-1:
+                        eval_frames.append(eval_env.render())
+
+                episode_returns.append(episode_reward)
+
+        # back to training mode
+        self.agent.policy.train()
+
+        eval_env.close()
+
+        if current_time_step > 0 and \
+                current_time_step % self._n_timesteps == 0:
+            # record data
+            record_gif(eval_frames,
+                       filename=f"REINFORCE-Trial-{current_trial}",
+                       epochs=current_time_step)
+
+        return np.mean(episode_returns), np.std(episode_returns)
 
     def show_policy(self, epoch: int):
         """

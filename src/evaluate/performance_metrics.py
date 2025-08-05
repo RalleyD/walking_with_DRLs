@@ -205,6 +205,17 @@ class PerformanceMetrics:
 
         self._td3_episode_sd.append(sd)
 
+    def update_reinforce_average(self, current_time_step: int,  mean: list, sd: list):
+        """
+        expected total 10 * (1e6 / 5e3) data points
+        i.e shape(10, 200)
+        for visualisation, require mean and sd over the 10 sets.
+        TODO refactor duplication
+        """
+        self._reinforce_mean_episode_returns.append(mean)
+
+        self._reinforce_episode_sd.append(sd)
+
     def get_average_learning_curve(self):
         return np.mean(self._td3_mean_episode_returns, axis=0), \
             np.std(self._td3_episode_sd, axis=0)
