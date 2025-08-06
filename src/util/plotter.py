@@ -138,12 +138,13 @@ def _lc_axis(x, y, target_ep, convergence_ep, title, ax):
         raise ValueError("SMA window too small: %d" % window)
     weights = np.ones(window) / window
     sma = np.convolve(y, weights, mode='valid')
-    # sma_x = np.arange(window*50, (len(sma) + window)*50, 50)
-    window_scaled = window*50
+    window_scaled = window * (x[1] - x[0])
     sma_x = x[window-1:]
 
     ax.plot(sma_x, sma, label=f"moving average, window={window_scaled}")
 
+    # TODO magic number - provide a consistent X axis for A/B comparison
+    ax.set_xticks(np.arange(0, int(1e6), step=int(0.2e6)))
     ax.grid(visible=True)
     ax.legend()
     ax.set_title(title)
