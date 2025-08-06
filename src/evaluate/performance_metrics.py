@@ -205,17 +205,38 @@ class PerformanceMetrics:
 
         self._td3_episode_sd.append(sd)
 
-    def update_reinforce_average(self, current_time_step: int,  mean: list, sd: list):
+    def update_reinforce_trial(self, time_steps: list,  mean: list, sd: list):
         """
-        expected total 10 * (1e6 / 5e3) data points
-        i.e shape(10, 200)
-        for visualisation, require mean and sd over the 10 sets.
-        TODO refactor duplication
+        TODO refactor method duplication
         """
+        self._reinforce_lc_x.append(time_steps)
+
         self._reinforce_mean_episode_returns.append(mean)
 
         self._reinforce_episode_sd.append(sd)
 
+    def get_reinforce_learning(self) -> tuple:
+        # The per-episode on-policy update nature of REINFORCE leads
+        # to irregular evaluation intervals.
+        # ensure that each per-trial list is symmetrical in length.
+
+        # 1 - get the shortest trial by time steps
+        shortest_trial = min(len(trial) for trial in self._reinforce_lc_x)
+
+        # 2 - truncate each trial list by the shortest trial length.
+        time_steps_trunc = np.array([trial[:shortest_trial]
+                                     for trial in self._reinforce_lc_x])
+        eval_returns_trunc = np.array([trial[:shortest_trial]
+                                       for trial in self._reinforce_mean_episode_returns])
+        eval_sd_trunc = np.array([trial[:shortest_trial]
+                                  for trial in self._reinforce_episode_sd])
+
+        # average the time steps to get a representative timing of the avearged results
+        # optionally, vertical stacking (axis 1) shall provide [(av time step, mean, s.d), ...]
+        return time_steps_trunc.mean(axis=0), \
+            eval_returns_trunc.mean(axis=0), \
+            eval_sd_trunc.mean(axis=0)
+
     def get_average_learning_curve(self):
-        return np.mean(self._td3_mean_episode_returns, axis=0), \
-            np.std(self._td3_episode_sd, axis=0)
+        return np.mean(self._td3_mean_episode_returns, axis=0),
+        np.std(self._td3_episode_sd, axis=0)

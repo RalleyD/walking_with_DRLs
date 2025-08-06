@@ -51,12 +51,17 @@ class ReinforceTrainer:
     def train(self):
         """Run the training loop.
         """
-        # TODO torch seeding!
-
         for trial in self._n_trials:
+            torch.manual_seed(trial)
             current_time_step = 0
             next_eval_interval = 1
             episode_returns = []
+
+            # per-trial evaluation metrics
+            # evaluation_means = []
+            # evaluation_sds = []
+            # evaluation_time_steps = []
+            trial_evaluation_metrics = []
             eval_interval = self.evaluate_interval
 
             while current_time_step < self._n_timesteps:
@@ -93,12 +98,16 @@ class ReinforceTrainer:
 
                 # maybe evaluate
                 if current_time_step >= eval_interval:
-                    means, sds = self.evaluate(current_time_step,
-                                               trial)
-                    # update performance metrics (x, y) == (time_step, mean_returns)
-                    self.metrics.update_reinforce_average(
-                        current_time_step, means, sds)
+                    mean, sd = self.evaluate(current_time_step,
+                                             trial)
+                    # evaluation_means.append(mean)
+                    # evaluation_sds.append(sd)
+                    # evaluation_time_steps.append(current_time_step)
+                    trial_evaluation_metrics.append(
+                        (current_time_step, mean, sd))
+
                     next_eval_interval += 1
+
                     eval_interval = self.evaluate_interval * next_eval_interval
 
             checkpoint = {
@@ -122,6 +131,13 @@ class ReinforceTrainer:
             )
 
             self.agent.save_model(checkpoint)
+
+            # update per-trial evaluation metrics
+            if trial_evaluation_metrics:
+                steps, means, sds = zip(*trial_evaluation_metrics)
+                self.metrics.update_reinforce_trial(
+                    steps, means, sds
+                )
 
         return episode_returns
 
