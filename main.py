@@ -7,6 +7,8 @@ from src.reinforce.reinforce_trainer import ReinforceTrainer
 from src.TD3.actor_critic_agent import ActorCriticAgent
 from src.TD3.td3_trainer import TD3Trainer
 from src.util.plotter import learning_rate_ma, evaluation_figure_a_b
+from src.reinforce.enhanced_policy_network import EnhancedPolicyNetwork
+from src.reinforce.policy_network import PolicyNetwork
 
 ##########################################################################
 
@@ -50,25 +52,23 @@ TD3_EVAL_INTERVAL = 5000
 ################################################################
 
 
-def train_reinforce(epochs: int,
-                    trials: int,
-                    layer_1: int,
-                    layer_2: int,
-                    lr: float,
-                    discount: float,
-                    exp_name: str,
-                    grad_clip: float) -> list:
-
-    sim_env = gym.make(exp_name)
-    obs_dim = sim_env.observation_space.shape[0]
-    action_dim = sim_env.action_space.shape[0]
+def train_reinforce(policy,
+                    env: gym.Env) -> list:
 
     reinforce_agent = ReinforceAgent(
-        obs_dim, action_dim, layer_1, layer_2, lr, discount, grad_clip)
+        policy,
+        obs_dim,
+        action_dim,
+        HIDDEN_LYR_1_WALKER,
+        HIDDEN_LYR_2_WALKER,
+        LR_WALKER,
+        GAMMA_WALKER,
+        MAX_GRADIENT_NORM
+    )
 
-    trainer = ReinforceTrainer(sim_env, reinforce_agent,
-                               n_timesteps=epochs,
-                               n_trials=trials,
+    trainer = ReinforceTrainer(env, reinforce_agent,
+                               n_timesteps=REINFORCE_TIME_STEPS_WALKER,
+                               n_trials=REINFORCE_N_TRIALS,
                                evaluate_interval=REINFORCE_EVAL_INTERVAL)
 
     trainer.train()
@@ -78,6 +78,8 @@ def train_reinforce(epochs: int,
 
 def train_td3(exp_name: str):
     sim_env = gym.make(exp_name)
+
+    # TODO refactor duplication
 
     obs_dim = sim_env.observation_space.shape[0]
     action_dim = sim_env.action_space.shape[0]
@@ -104,19 +106,17 @@ def train_td3(exp_name: str):
 
 ################################################################
 
-# train_reinforce(EPOCHS, HIDDEN_LYR_1,
-#                 HIDDEN_LYR_2, LR,
-#                 GAMMA,
-#                 'InvertedPendulum-v4')
 
+# =========== Train REINFORCE Agent ============ #
+sim_env = gym.make("Walker2d-v4")
+obs_dim = sim_env.observation_space.shape[0]
+action_dim = sim_env.action_space.shape[0]
 
-reinforce_trainer = train_reinforce(REINFORCE_TIME_STEPS_WALKER,
-                                    REINFORCE_N_TRIALS,
-                                    HIDDEN_LYR_1_WALKER,
-                                    HIDDEN_LYR_2_WALKER,
-                                    LR_WALKER, GAMMA_WALKER,
-                                    "Walker2d-v4",
-                                    MAX_GRADIENT_NORM)
+reinforce_policy = EnhancedPolicyNetwork(
+    obs_dim, action_dim, HIDDEN_LYR_1_WALKER, HIDDEN_LYR_2_WALKER)
+
+reinforce_trainer = train_reinforce(reinforce_policy,
+                                    sim_env)
 
 # =========== Plot Reinforce stats ============ #
 

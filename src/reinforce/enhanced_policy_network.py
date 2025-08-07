@@ -2,7 +2,7 @@ import torch
 import torch.nn as nn
 
 
-class PolicyNetwork(nn.Module):
+class EnhancedPolicyNetwork(nn.Module):
     """A neural network that estimates the mean and standard deviation of a normal distribution
     from which the agent's action is sampled."""
 
@@ -16,7 +16,7 @@ class PolicyNetwork(nn.Module):
         """
         super().__init__()
 
-        # Shared layers
+        # Shared layers TODO increase complexity based on research
         self.shared_net = nn.Sequential(
             nn.Linear(obs_dim, hidden_size1),
             nn.ReLU(),
@@ -29,10 +29,21 @@ class PolicyNetwork(nn.Module):
             nn.Linear(hidden_size2, action_dim)
         )
 
+        # xavier initialisation (weights)
+        # this scales the weights so that the variance of the outputs matches the inputs
+        # TODO cite, this may not be optimal so research this.
+        nn.init.xavier_uniform_(self.mean_net[-1].weight)
+
         # Log of standard deviation output layer
         self.log_std_net = nn.Sequential(
             nn.Linear(hidden_size2, action_dim)
         )
+
+        # xavier log std initialisation
+        nn.init.xavier_uniform_(self.log_std_net[-1].weight)
+
+        # log std final layer initial bias to 0
+        self.log_std_net[-1].bias.data.fill_(0.0)
 
     def forward(self, x: torch.Tensor):
         """Given an observation, this function returns the means and standard deviations of
@@ -45,13 +56,19 @@ class PolicyNetwork(nn.Module):
             stddevs: Predicted standard deviations of the normal distributions
         """
         shared_features = self.shared_net(x)
+        means = self.mean_net(shared_features)
 
-        # ensures outputs are bounded [-1, 1] matching the walker action space
-        means = torch.tanh(self.mean_net(shared_features))
+        # if the log_std_net produces very negative values
+        # then sigma, exp(log_std) becomes very small.
+        # as a result the numerical stability drops and the log probs will lead to
+        # unstable gradients
+        # automatically clamp exp values prior to performing exp
+        # thereby preventing extreme log values before the exp calculation
+        stddevs = torch.clamp(
+            self.log_std_net(shared_features),
+            min=-20,  # Don't go too negative
+            max=5,   # TODO research why this is a good value. Relates to exploding gradients. Through experimentation you've seen gradients over 5 cause swinging returns
+        )
+        stddevs = torch.exp(stddevs)
 
-        # similarly to the reward returns, std devs can vary
-        # significantly from 0 to unrealistically high values
-        stddevs = torch.exp(self.log_std_net(shared_features))
-
-        # clamp the log std to a reasonable range.
-        return means, torch.clamp(stddevs, min=1e-6, max=10.0)
+        return means, stddevs
