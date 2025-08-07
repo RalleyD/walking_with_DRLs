@@ -98,6 +98,15 @@ class ReinforceTrainer:
 
                 # maybe evaluate
                 if current_time_step >= eval_interval:
+
+                    # log policy distributions
+                    means, std_devs = self.agent.get_action_metadata()
+                    if means is not None:
+                        logger.info(
+                            f"mean range: {means.min():.3f} <-> {means.max():.3f}")
+                        logger.info(
+                            f"std dev range: {std_devs.min():.3f} <-> {std_devs.max():.3f}")
+
                     mean, sd = self.evaluate(current_time_step,
                                              trial)
                     logger.info(

@@ -5,19 +5,29 @@ from typing import Optional
 from pathlib import Path
 from src.util.plotter import PRJ_ROOT
 
+from src.custom_logger import CustomLogger
+
+##############################
+# Logger
+##############################
+logger = CustomLogger.get_project_logger()
+
+##############################
+
 
 class ReinforceAgent:
     """An agent that learns a policy via the REINFORCE algorithm"""
 
     def __init__(
         self,
+        policy,
         obs_dim: int,
         action_dim: int,
         hidden_size1: int,
         hidden_size2: int,
         learning_rate: float,
         gamma: float,
-        max_gradient_norm: float
+        max_gradient_norm: float,
     ):
         """
         Args:
@@ -34,10 +44,21 @@ class ReinforceAgent:
         self.gamma = gamma
         self._gradient_norm = max_gradient_norm
 
-        self.policy = PolicyNetwork(
-            obs_dim, action_dim, hidden_size1, hidden_size2)
+        self.policy = policy
         self.optimizer = torch.optim.AdamW(
             self.policy.parameters(), lr=learning_rate)
+
+        self._agent_meta_means = None
+        self._agent_meta_stds = None
+
+        with torch.no_grad():
+            # initial mean range and std values
+            dummy_input = torch.randn(1, 17)
+            means, stds = self.policy(dummy_input)
+            logger.info(
+                f"Initial mean range {means.min():.3f} <-> {means.max():.3f}")
+            logger.info(
+                f"Initial S.D range {stds.min():.3f} <-> {stds.max():.3f}")
 
     def get_action(self, obs: np.array) -> tuple:
         """Returns an action, conditioned on the policy and observation.
@@ -56,10 +77,8 @@ class ReinforceAgent:
         obs_torch = torch.as_tensor(obs).float().unsqueeze(0)
         means, std_devs = self.policy(obs_torch)
 
-        # similarly to the reward returns, std_devs can vary
-        # significantly from 0 to unrealistically high values
-        # clamp the standard deviation to a reasonable range.
-        std_devs = torch.clamp(std_devs, min=1e-6, max=10.0)
+        # set current metadata
+        self._set_agent_metadata(means, std_devs)
 
         # get a normal distribution of the forward pass that
         # can be sampled
@@ -84,7 +103,15 @@ class ReinforceAgent:
         # low entropy - indicator of determinism
         entropy = norm_dist.entropy().detach().mean()
 
+        # TODO detatch so that the gradients aren't maintianed during env interaction?
         return action.squeeze(0).numpy(), prob, entropy
+
+    def _set_agent_metadata(self, means, stds):
+        self._agent_meta_means = means
+        self._agent_meta_stds = stds
+
+    def get_action_metadata(self):
+        return self._agent_meta_means, self._agent_meta_stds
 
     def update(self, log_probs, rewards):
         """Update the policy network's weights.
