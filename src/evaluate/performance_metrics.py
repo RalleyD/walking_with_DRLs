@@ -51,10 +51,14 @@ class PerformanceMetrics:
         # store raw data
         self._episode_returns = []
         self._policy_entropies = []
+        # TODO consolidate (per-object, not per model)
         # TD3
         self._td3_mean_episode_returns = []
         self._td3_episode_sd = []
-
+        # REINFORCE
+        self._reinforce_time_steps = []
+        self._reinforce_mean_episode_returns = []
+        self._reinforce_episode_sd = []
         # computed metrics
         self._ema_returns = []
         self._rolling_var = []
@@ -209,7 +213,7 @@ class PerformanceMetrics:
         """
         TODO refactor method duplication
         """
-        self._reinforce_lc_x.append(time_steps)
+        self._reinforce_time_steps.append(time_steps)
 
         self._reinforce_mean_episode_returns.append(mean)
 
@@ -221,15 +225,24 @@ class PerformanceMetrics:
         # ensure that each per-trial list is symmetrical in length.
 
         # 1 - get the shortest trial by time steps
-        shortest_trial = min(len(trial) for trial in self._reinforce_lc_x)
+        trial_lengths = [len(trial) for trial in self._reinforce_time_steps]
+        shortest_trial = min(trial_lengths)
+        longest_trial = max(trial_lengths)
 
         # 2 - truncate each trial list by the shortest trial length.
         time_steps_trunc = np.array([trial[:shortest_trial]
-                                     for trial in self._reinforce_lc_x])
+                                     for trial in self._reinforce_time_steps])
         eval_returns_trunc = np.array([trial[:shortest_trial]
                                        for trial in self._reinforce_mean_episode_returns])
         eval_sd_trunc = np.array([trial[:shortest_trial]
                                   for trial in self._reinforce_episode_sd])
+
+        if shortest_trial < longest_trial:
+            logger.info(f"{trial_lengths=}")
+            logger.info(f"Truncated to: {shortest_trial} data points.")
+            # simplified form of: sum( (len(arr[0]) - shortest_trial), ... (len(arr[n-1]) - shortest_trial) )
+            logger.info(
+                f"    Data Points Lost: {sum(trial_lengths) - shortest_trial * len(trial_lengths)}")
 
         # average the time steps to get a representative timing of the avearged results
         # optionally, vertical stacking (axis 1) shall provide [(av time step, mean, s.d), ...]

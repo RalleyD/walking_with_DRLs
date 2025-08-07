@@ -5,9 +5,17 @@ from pathlib import Path
 from moviepy import ImageSequenceClip
 from datetime import datetime
 from src.evaluate.performance_metrics import PerformanceMetrics
+from src.custom_logger import CustomLogger
 
 FILE_DIR = Path(__file__).parent
 PRJ_ROOT = Path(FILE_DIR).parent.parent
+
+
+########################################
+# logger
+########################################
+logger = CustomLogger.get_project_logger()
+########################################
 
 
 """create wrapper function that will:
@@ -98,11 +106,12 @@ def evaluation_figure_a_b(metrics_a: PerformanceMetrics,
 def learning_rate_ma(x: Optional[np.array], y: np.array,
                      target_ep: int = None,
                      convergence_ep: int = None,
-                     title: Optional[str] = "Reinforce learning curve"):
+                     title: Optional[str] = "Reinforce learning curve",
+                     time_steps: int = int(1e6)):
 
     fig, ax = plt.subplots(1, 1)
 
-    _lc_axis(x, y, target_ep, convergence_ep, title, ax)
+    _lc_axis(x, y, target_ep, convergence_ep, title, ax, time_steps)
 
     save_plot(title, fig)
 
@@ -118,11 +127,11 @@ def save_plot(title, fig):
     fig.savefig(output_dir / out_file, dpi=600)
 
 
-def _lc_axis(x, y, target_ep, convergence_ep, title, ax):
+def _lc_axis(x, y, target_ep, convergence_ep, title, ax, time_steps: int):
     if x is None:
         x = np.arange(0, len(y), 1)
 
-    ax.plot(x, y, label="returns")
+    ax.plot(x, y, label="average returns")
 
     # target first reached
     if target_ep:
@@ -134,21 +143,22 @@ def _lc_axis(x, y, target_ep, convergence_ep, title, ax):
 
     # SMA
     window = len(y) // 10
-    if window == 0:
-        raise ValueError("SMA window too small: %d" % window)
-    weights = np.ones(window) / window
-    sma = np.convolve(y, weights, mode='valid')
-    window_scaled = window * (x[1] - x[0])
-    sma_x = x[window-1:]
+    if window > 0:
+        weights = np.ones(window) / window
+        sma = np.convolve(y, weights, mode='valid')
+        window_scaled = window * (x[1] - x[0])
+        sma_x = x[window-1:]
 
-    ax.plot(sma_x, sma, label=f"moving average, window={window_scaled}")
+        ax.plot(sma_x, sma, label=f"moving average, window={window_scaled}")
+    else:
+        logger.warning("SMA window too small: %d" % window)
 
     # TODO magic number - provide a consistent X axis for A/B comparison
-    ax.set_xticks(np.arange(0, int(1e6), step=int(0.2e6)))
+    ax.set_xticks(np.arange(0, int(time_steps), step=int(time_steps // 5)))
     ax.grid(visible=True)
     ax.legend()
     ax.set_title(title)
-    ax.set_xlabel("episode (n)")
+    ax.set_xlabel("time steps (n)")
     ax.set_ylabel("returns (n)")
 
 

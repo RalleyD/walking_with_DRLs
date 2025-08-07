@@ -25,7 +25,6 @@ class ReinforceTrainer:
     def __init__(self,
                  env: gym,
                  agent: ReinforceAgent,
-                 n_episodes: int,
                  n_trials: int = 10,
                  n_timesteps: int = 1e6,
                  evaluate_interval: int = 5000,
@@ -35,34 +34,35 @@ class ReinforceTrainer:
         Args:
             env (gym.Env): A gym environment
             agent (ReinforceAgent): The REINFORCE agent
-            n_episodes (int): Number of episodes to run the environment
             evaluate_interval (int): Number of episodes between two evaluations
             show_policy_interval (int): Number of episodes between policy displays
         """
         self.env = env
         self.agent = agent
-        self.n_episodes = n_episodes
         self.evaluate_interval = evaluate_interval
         self.show_policy_interval = show_policy_interval
-        self._n_trials = n_trials,
+        self._n_trials = n_trials
         self._n_timesteps = int(n_timesteps)
         self.metrics = PerformanceMetrics()
 
     def train(self):
         """Run the training loop.
         """
-        for trial in self._n_trials:
+        logger.info(f"Evaluation interval: {self.evaluate_interval}")
+        logger.info(f"Number of trials: {self._n_trials}")
+        logger.info(f"Number of timesteps: {self._n_timesteps}")
+
+        for trial in range(self._n_trials):
             torch.manual_seed(trial)
             current_time_step = 0
             next_eval_interval = 1
             episode_returns = []
+            eval_interval = self.evaluate_interval
 
             # per-trial evaluation metrics
-            # evaluation_means = []
-            # evaluation_sds = []
-            # evaluation_time_steps = []
             trial_evaluation_metrics = []
-            eval_interval = self.evaluate_interval
+
+            logger.info("Training REINFORCE model - trial %d" % trial)
 
             while current_time_step < self._n_timesteps:
                 episode_done = False
@@ -100,9 +100,8 @@ class ReinforceTrainer:
                 if current_time_step >= eval_interval:
                     mean, sd = self.evaluate(current_time_step,
                                              trial)
-                    # evaluation_means.append(mean)
-                    # evaluation_sds.append(sd)
-                    # evaluation_time_steps.append(current_time_step)
+                    logger.info(
+                        f"Evaluating model - time step: {current_time_step}")
                     trial_evaluation_metrics.append(
                         (current_time_step, mean, sd))
 
@@ -111,7 +110,7 @@ class ReinforceTrainer:
                     eval_interval = self.evaluate_interval * next_eval_interval
 
             checkpoint = {
-                "epoch": self.n_episodes,
+                "episodes": len(episode_returns),
                 "model_state_dict": self.agent.policy.state_dict(),
                 "optimiser_state_dict": self.agent.optimizer.state_dict(),
                 "returns": episode_returns
@@ -124,8 +123,9 @@ class ReinforceTrainer:
             logger.info(
                 f"=== Model Summary ===\n"
                 f"{str(model_summary)}\n"
-                f"--- Epochs ---\n"
-                f"    {self.n_episodes}\n"
+                f"--- Episodes ---\n"
+                # f"    {self.n_episodes}\n"
+                f"    {len(episode_returns)}\n"
                 f"=== Agent input dimensions ===\n"
                 f"   (observation space): {self.agent.obs_dim}\n"
             )
@@ -159,7 +159,7 @@ class ReinforceTrainer:
 
                 while not done:
                     # get an action w/ no exploration noise
-                    action = self.agent.get_action(obs)
+                    action, _, _ = self.agent.get_action(obs)
                     obs, reward, terminated, truncated, _ = eval_env.step(
                         action)
                     done = terminated or truncated
