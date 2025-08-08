@@ -66,8 +66,8 @@ class EnhancedPolicyNetwork(nn.Module):
         # thereby preventing extreme log values before the exp calculation
         stddevs = torch.clamp(
             self.log_std_net(shared_features),
-            min=-20,  # Don't go too negative
-            max=5,   # TODO research why this is a good value. Relates to exploding gradients. Through experimentation you've seen gradients over 5 cause swinging returns
+            min=1e-6,  # Don't go negative
+            max=10,   # TODO research why this is a good value. Relates to exploding gradients. Through experimentation you've seen gradients over 5 cause swinging returns
         )
         stddevs = torch.exp(stddevs)
 
