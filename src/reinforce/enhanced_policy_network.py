@@ -6,7 +6,7 @@ class EnhancedPolicyNetwork(nn.Module):
     """A neural network that estimates the mean and standard deviation of a normal distribution
     from which the agent's action is sampled."""
 
-    def __init__(self, obs_dim, action_dim, hidden_size1=32, hidden_size2=32) -> None:
+    def __init__(self, obs_dim, action_dim, hidden_size1=256, hidden_size2=256, hidden_size3=128) -> None:
         """
         Args:
             obs_dim (int): Dimension of the observation space
@@ -16,17 +16,21 @@ class EnhancedPolicyNetwork(nn.Module):
         """
         super().__init__()
 
+        self._final_hidden = hidden_size3
+
         # Shared layers TODO increase complexity based on research
         self.shared_net = nn.Sequential(
             nn.Linear(obs_dim, hidden_size1),
             nn.ReLU(),
             nn.Linear(hidden_size1, hidden_size2),
+            nn.ReLU(),
+            nn.Linear(hidden_size2, self._final_hidden),
             nn.ReLU()
         )
 
         # Mean output layer
         self.mean_net = nn.Sequential(
-            nn.Linear(hidden_size2, action_dim)
+            nn.Linear(self._final_hidden, action_dim)
         )
 
         # xavier initialisation (weights)
@@ -36,7 +40,7 @@ class EnhancedPolicyNetwork(nn.Module):
 
         # Log of standard deviation output layer
         self.log_std_net = nn.Sequential(
-            nn.Linear(hidden_size2, action_dim)
+            nn.Linear(self._final_hidden, action_dim)
         )
 
         # xavier log std initialisation
@@ -56,7 +60,7 @@ class EnhancedPolicyNetwork(nn.Module):
             stddevs: Predicted standard deviations of the normal distributions
         """
         shared_features = self.shared_net(x)
-        means = self.mean_net(shared_features)
+        means = torch.tanh(self.mean_net(shared_features))
 
         # if the log_std_net produces very negative values
         # then sigma, exp(log_std) becomes very small.

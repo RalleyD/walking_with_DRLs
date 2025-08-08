@@ -107,9 +107,12 @@ def learning_rate_ma(x: Optional[np.array], y: np.array,
                      target_ep: int = None,
                      convergence_ep: int = None,
                      title: Optional[str] = "Reinforce learning curve",
-                     time_steps: int = int(1e6)):
+                     time_steps: int = int(1e6),
+                     **kwargs):
 
     fig, ax = plt.subplots(1, 1)
+
+    title = f"{title}: {', '.join(lyr + ':' + str(v) for lyr, v in kwargs.items())}"
 
     _lc_axis(x, y, target_ep, convergence_ep, title, ax, time_steps)
 
@@ -146,7 +149,7 @@ def _lc_axis(x, y, target_ep, convergence_ep, title, ax, time_steps: int):
     if window > 0:
         weights = np.ones(window) / window
         sma = np.convolve(y, weights, mode='valid')
-        window_scaled = window * (x[1] - x[0])
+        window_scaled = int(window * (x[1] - x[0]))
         sma_x = x[window-1:]
 
         ax.plot(sma_x, sma, label=f"moving average, window={window_scaled}")
@@ -154,7 +157,7 @@ def _lc_axis(x, y, target_ep, convergence_ep, title, ax, time_steps: int):
         logger.warning("SMA window too small: %d" % window)
 
     # TODO magic number - provide a consistent X axis for A/B comparison
-    ax.set_xticks(np.arange(0, int(time_steps), step=int(time_steps // 5)))
+    ax.set_xticks(np.arange(0, int(time_steps)+1, step=int(time_steps // 5)))
     ax.grid(visible=True)
     ax.legend()
     ax.set_title(title)

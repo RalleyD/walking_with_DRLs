@@ -27,14 +27,15 @@ GAMMA = 0.99    # discount factor on future steps
 # Hyperparameters - walker2D
 ################################
 REINFORCE_N_TRIALS = 5
-REINFORCE_TIME_STEPS_WALKER = int(100)  # int(1e6)   # time steps
-HIDDEN_LYR_1_WALKER = 128
-HIDDEN_LYR_2_WALKER = 128
+REINFORCE_TIME_STEPS_WALKER = int(1e6)   # time steps
+HIDDEN_LYR_1_WALKER = 256
+HIDDEN_LYR_2_WALKER = 256
+HIDDEN_LYR_3_WALKER = 128
 # use a low learning rate because the high variance will cause large gradient updates.
 LR_WALKER = 0.0001  # see literature
 GAMMA_WALKER = 0.99    # discount factor on future steps
 MAX_GRADIENT_NORM = 0.5  # clips the gradient norms for all the policy parameters
-REINFORCE_EVAL_INTERVAL = int(5)
+REINFORCE_EVAL_INTERVAL = int(5000)
 
 # ========= TD3 Hyperparameters ========= #
 
@@ -113,7 +114,12 @@ obs_dim = sim_env.observation_space.shape[0]
 action_dim = sim_env.action_space.shape[0]
 
 reinforce_policy = EnhancedPolicyNetwork(
-    obs_dim, action_dim, HIDDEN_LYR_1_WALKER, HIDDEN_LYR_2_WALKER)
+    obs_dim, action_dim,
+    HIDDEN_LYR_1_WALKER, HIDDEN_LYR_2_WALKER,
+    HIDDEN_LYR_3_WALKER)
+
+# reinforce_policy = PolicyNetwork(
+#     obs_dim, action_dim, HIDDEN_LYR_1_WALKER, HIDDEN_LYR_2_WALKER)
 
 reinforce_trainer = train_reinforce(reinforce_policy,
                                     sim_env)
@@ -140,7 +146,10 @@ learning_rate_ma(x=reinforce_av_time_steps,
                  #  target_ep=target_reached,
                  #  convergence_ep=stable_convergence,
                  title=f"Reinforce Learning Curve, {REINFORCE_N_TRIALS} trials. layers: {HIDDEN_LYR_1_WALKER}, {HIDDEN_LYR_2_WALKER}",
-                 time_steps=REINFORCE_TIME_STEPS_WALKER
+                 time_steps=REINFORCE_TIME_STEPS_WALKER,
+                 lyr1=HIDDEN_LYR_1_WALKER,
+                 lyr2=HIDDEN_LYR_2_WALKER,
+                 lyr3=HIDDEN_LYR_3_WALKER
                  )
 #################################################################
 
