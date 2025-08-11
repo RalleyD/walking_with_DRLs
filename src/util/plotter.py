@@ -1,4 +1,5 @@
 import matplotlib.pyplot as plt
+import seaborn as sns
 import numpy as np
 from typing import Optional
 from pathlib import Path
@@ -163,6 +164,176 @@ def _lc_axis(x, y, target_ep, convergence_ep, title, ax, time_steps: int):
     ax.set_title(title)
     ax.set_xlabel("time steps (n)")
     ax.set_ylabel("returns (n)")
+
+
+class PlotLearningCurve:
+    """
+    """
+
+    def __init__(self, time_steps: int,
+                 trials: int):
+        """
+        Args:
+            time_steps (int): number of training time steps
+            trials (int): number of training loop repititions
+        """
+        self._time_steps = time_steps
+        self._trials = trials
+        self._reinforce_x = np.array([])
+        self._reinforce_y = np.array([])
+        self._reinforce_y_std = np.array([])
+        self._td3_x = np.array([])
+        self._td3_y = np.array([])
+        self._td3_y_std = np.array([])
+        self._fig, self._ax = plt.subplots(1, 1)
+        self._title = "Reinforce Vs TD3 Learning Curve"
+        self._clrs = sns.color_palette("husl", 2)
+        self._clr_idx = 0
+        self._ax: plt.Axes = None
+
+    def _set_model_attrs(self, model_name: str, x_data, y_data, y_std):
+        setattr(self, f'_{model_name}_x', np.array(x_data))
+        setattr(self, f'_{model_name}_y', np.array(y_data))
+        setattr(self, f'_{model_name}_y_std', np.array(y_std))
+
+    def _set_model_data(self, model_name: str, x_data, y_data, y_std):
+        # valid models set
+        valid_models = {"reinforce", "td3"}
+
+        if model_name not in valid_models:
+            raise ValueError(
+                f"Incorrect Model Requested: {model_name} - models available {valid_models}")
+
+        self._set_model_attrs(model_name.lower(), x_data, y_data, y_std)
+
+    def _lc_axis(self, x, y, y_std, model_name: str):
+        if x is None:
+            x = np.arange(0, len(y), 1)
+
+        print("length x: ", len(x))
+        print("length y: ", len(y))
+        print("length y std: ", len(y_std))
+        print(f"{x=}")
+        print(f"{y=}")
+        print(f"{y_std=}")
+
+        self._ax.plot(x, y, label=model_name,
+                      c=self._clrs[self._clr_idx])
+
+        if len(y_std):
+            self._ax.fill_between(x, y-y_std, y+y_std,
+                                  alpha=0.3,
+                                  facecolor=self._clrs[self._clr_idx])
+
+        self._clr_idx = self._clr_idx + 1 \
+            if self._clr_idx < len(self._clrs) else 0
+
+        # SMA
+        # window = len(y) // 10
+        # if window > 0:
+        #     weights = np.ones(window) / window
+        #     sma = np.convolve(y, weights, mode='valid')
+        #     window_scaled = int(window * (x[1] - x[0]))
+        #     sma_x = x[window-1:]
+
+        #     ax.plot(sma_x, sma, label=f"moving average, window={window_scaled}")
+        # else:
+        #     logger.warning("SMA window too small: %d" % window)
+
+        # TODO magic number - provide a consistent X axis for A/B comparison
+        self._ax.set_xticks(
+            np.arange(0, int(self._time_steps)+1,
+                      step=int(self._time_steps // 5))
+        )
+        self._ax.grid(visible=True)
+        self._ax.legend()
+        self._ax.set_title(self._title)
+        self._ax.set_xlabel("time steps (n)")
+        self._ax.set_ylabel("returns (n)")
+
+    def _plot_lc_with_confidence(self, alpha=0.5):
+        if len(self._reinforce_y):
+            y_reinforce_smoothed = self._smooth_curve(self._reinforce_y.copy())
+            # call _lc_axis with x_data, smoothed y_data
+            y_std_alpha = self._reinforce_y_std * alpha
+            self._lc_axis(self._reinforce_x, y_reinforce_smoothed,
+                          y_std_alpha, "reinforce")
+
+        if len(self._td3_y):
+            y_td3_smoothed = self._smooth_curve(self._td3_y)
+            # call _lc_axis with x_data, y_std
+            y_td3_std_alpha = self._td3_y_std * alpha
+            self._lc_axis(self._td3_x, y_td3_smoothed, y_td3_std_alpha, "TD3")
+
+    def _plot_lc_std(self):
+        pass
+
+    def _smooth_curve(self, y_data: np.ndarray, method='sma', window=100) -> np.ndarray:
+        """
+        Args:
+            method (str): 'sma' -> simple moving average
+        """
+        # establish a ones array of size window
+        # for equal weights divide each ones by the window size
+        if len(y_data) <= window:
+            window = int(len(y_data) // 10)
+
+        weights = np.ones(window) / window
+        # convolve the weights array with y_data
+        sma = np.convolve(y_data, weights, mode='same')
+
+        return sma
+
+    def _save_plot(self, fig: plt.Figure):
+        output_dir = PRJ_ROOT / "plots"
+        output_dir.mkdir(exist_ok=True)
+        out_file = self._title.replace(" ", "-").replace(
+            ",", "_").replace(":", "") + \
+            datetime.now().strftime("%Y-%m-%d_%H_%M_%S") + \
+            ".png"
+
+        fig.savefig(output_dir / out_file, dpi=600)
+
+    def set_reinforce_data(self, x_data, y_data, y_std):
+        self._set_model_data("reinforce", x_data, y_data, y_std)
+
+    def set_td3_data(self, x_data, y_data, y_std):
+        self._set_model_data("td3", x_data, y_data, y_std)
+
+    def plot_learning_curves(self):
+        # instantiate fig and axis
+        fig, self._ax = plt.subplots(1, 1)
+        # plot_lc_with_confidence reinforce
+        self._plot_lc_with_confidence()
+        # save plot
+        self._save_plot(fig)
+        # show plot
+        plt.show()
+
+# def _plot_lc_with_confidence(ax, x_data, y_data, y_std, alpha=0.5, time_steps=int(1e6)):
+#     """
+#     Args:
+#         alpha (float): how much of the std dev to preserve
+#                         (for visual clarity)
+#     """
+#     # leverage _lc_axis function to do this
+#     # 1 - smooth the curve
+#     y_smoothed = _smooth_curve(y_data)
+#     # 2 - call _lc_axis with x_data, smoothed y_data
+#     _lc_axis(x_data, y_smoothed,
+#              title="Reinforce Vs TD3 Learning Curve", time_steps=time_steps)
+#     # 3 - call _lc_axis with x_data, y_std
+#     _lc_axis(x_data, y_std, time_steps=time_steps)
+
+
+# def plot_learning_curves(reinforce_x, reinforce_y, reinforce_std, td3_x, td3_y, td3_std):
+#     # instantiate fig and axis
+#     fig, ax = plt.subplots(1, 1)
+#     # plot_lc_with_confidence reinforce
+#     _plot_lc_with_confidence(ax, reinforce_x, reinforce_y, reinforce_std)
+#     # repeat for td3
+#     # save plot
+#     # show plot
 
 
 def record_gif(gif_frames: list, fps=200, filename: str = "reinforce", epochs: int = None) -> None:
