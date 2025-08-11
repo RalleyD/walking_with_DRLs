@@ -259,6 +259,7 @@ class PerformanceMetrics:
             eval_returns_trunc.mean(axis=0), \
             eval_sd_trunc
 
-    def get_average_learning_curve(self):
+    def get_td3_learning(self):
         return np.mean(self._td3_mean_episode_returns, axis=0), \
-            np.std(self._td3_episode_sd, axis=0)  # TODO this is not correct.
+            np.std(self._td3_mean_episode_returns,
+                   axis=0)

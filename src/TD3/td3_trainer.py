@@ -227,7 +227,7 @@ class TD3Trainer:
             "target_critic_1": self.agent.targetQ1.state_dict(),
             "target_critic_2": self.agent.targetQ2.state_dict(),
             # mean values
-            "returns": self.metrics.get_average_learning_curve()[0]
+            "returns": self.metrics.get_td3_learning()[0]
         }
 
         self.agent.save_model(checkpoint)
@@ -244,7 +244,6 @@ class TD3Trainer:
 
         with torch.no_grad():
             for ep in range(eval_episodes):
-                # TODO think about seeding!
                 obs, _ = eval_env.reset(seed=current_trial)
                 eval_time_steps = 0
                 episode_reward = 0

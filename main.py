@@ -165,7 +165,7 @@ learning_curve_plotter.set_reinforce_data(reinforce_av_time_steps,
 # ========== TD3 Training =========== #
 td3_train = train_td3("Walker2d-v4")
 
-td3_average_return, td3_return_std = td3_train.metrics.get_average_learning_curve()
+td3_average_return, td3_return_std = td3_train.metrics.get_td3_learning()
 
 td3_x = np.arange(0, len(td3_average_return) *
                   TD3_EVAL_INTERVAL, TD3_EVAL_INTERVAL)
