@@ -234,8 +234,9 @@ class PerformanceMetrics:
                                      for trial in self._reinforce_time_steps])
         eval_returns_trunc = np.array([trial[:shortest_trial]
                                        for trial in self._reinforce_mean_episode_returns])
-        eval_sd_trunc = np.array([trial[:shortest_trial]
-                                  for trial in self._reinforce_episode_sd])
+
+        # 3 - get the per-evaluation standard deviation across all trials
+        eval_sd_trunc = eval_returns_trunc.std(axis=0)
 
         if shortest_trial < longest_trial:
             logger.info(f"{trial_lengths=}")
@@ -244,12 +245,20 @@ class PerformanceMetrics:
             logger.info(
                 f"    Data Points Lost: {sum(trial_lengths) - shortest_trial * len(trial_lengths)}")
 
+        logger.info(
+            f"truncated evaluation returns, shape: {eval_returns_trunc.shape}")
+        logger.info(
+            f"truncated evaluation std dev, shape: {eval_sd_trunc.shape}")
+        logger.info(f"Std devs sample: {eval_sd_trunc[:5]}")
+        logger.info(
+            f"Std devs range: {eval_sd_trunc.min():.2f} - {eval_sd_trunc.max():.2f}")
+
         # average the time steps to get a representative timing of the avearged results
         # optionally, vertical stacking (axis 1) shall provide [(av time step, mean, s.d), ...]
         return time_steps_trunc.mean(axis=0), \
             eval_returns_trunc.mean(axis=0), \
-            eval_sd_trunc.mean(axis=0)
+            eval_sd_trunc
 
     def get_average_learning_curve(self):
-        return np.mean(self._td3_mean_episode_returns, axis=0),
-        np.std(self._td3_episode_sd, axis=0)
+        return np.mean(self._td3_mean_episode_returns, axis=0), \
+            np.std(self._td3_episode_sd, axis=0)  # TODO this is not correct.

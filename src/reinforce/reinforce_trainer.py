@@ -107,16 +107,16 @@ class ReinforceTrainer:
                         logger.info(
                             f"std dev range: {std_devs.min():.3f} <-> {std_devs.max():.3f}")
 
+                    next_eval_interval += 1
+                    eval_interval = self.evaluate_interval * next_eval_interval
+
                     mean, sd = self.evaluate(current_time_step,
-                                             trial)
+                                             trial,
+                                             eval_interval)
                     logger.info(
                         f"Evaluating model - time step: {current_time_step}")
                     trial_evaluation_metrics.append(
                         (current_time_step, mean, sd))
-
-                    next_eval_interval += 1
-
-                    eval_interval = self.evaluate_interval * next_eval_interval
 
             checkpoint = {
                 "episodes": len(episode_returns),
@@ -150,7 +150,7 @@ class ReinforceTrainer:
 
         return episode_returns
 
-    def evaluate(self, current_time_step: int, current_trial: int, eval_episodes=10):
+    def evaluate(self, current_time_step: int, current_trial: int, next_eval: int, eval_episodes=10):
         # TODO this can potentially be part of the base class implementation
         # set model to eval mode
         self.agent.policy.eval()
@@ -184,8 +184,9 @@ class ReinforceTrainer:
 
         eval_env.close()
 
+        # final time step within the evaluation window
         if current_time_step > 0 and \
-                current_time_step % self._n_timesteps == 0:
+                next_eval == self._n_timesteps:
             # record data
             record_gif(eval_frames,
                        filename=f"REINFORCE-Trial-{current_trial}",
