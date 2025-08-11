@@ -68,6 +68,11 @@ class TD3Trainer:
             eval_sds = []
             initial_actor_weight = None
             while time_steps <= self._time_steps:
+                if not initial_actor_weight:
+                    initial_actor_weight = list(self.agent.actor.parameters())[
+                        0][0, 0].item()
+                    logger.info("initial actor weight: %f" %
+                                initial_actor_weight)
                 if time_steps <= self._update_start:
                     # logger.info("random action sampling, step: %d" %
                     #             time_steps)
@@ -81,11 +86,6 @@ class TD3Trainer:
                         torch.tensor(action), dtype=torch.float32) * 0.1,
                         -0.5, 0.5).numpy()
                     action = np.add(action, exploration_noise)
-                    if not initial_actor_weight:
-                        initial_actor_weight = list(self.agent.actor.parameters())[
-                            0][0, 0].item()
-                        logger.info("initial actor weight: %f" %
-                                    initial_actor_weight)
 
                 # Take action and update replay buffer
                 s_next, reward, terminated, truncated, _ = self._env.step(
