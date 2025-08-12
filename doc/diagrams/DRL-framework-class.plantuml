@@ -1,0 +1,41 @@
+@startuml
+
+class Policy {
+    .. called through object instance ..
+    + forward()
+}
+
+class Agent {
+    + agent
+    + update()
+    + action()
+    + save_model()
+}
+
+Policy *-- Agent 
+
+class Trainer {
+    + metrics
+    + train()
+    + evaluate()
+}
+
+Agent *-- Trainer
+
+class PerformanceMetrics {
+    + update_reinforce_trial()
+    + update_td3_average()
+    + get_reinforce_learning()
+    + get_td3_learning()
+}
+
+PerformanceMetrics *-- Trainer
+
+class PlotLearningCurve {
+    + set_reinforce_data()
+    + set_td3_data()
+    + plot_learning_curves()
+}
+
+@enduml
+
