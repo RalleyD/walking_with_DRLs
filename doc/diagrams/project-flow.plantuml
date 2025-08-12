@@ -1,0 +1,25 @@
+@startuml
+
+start
+
+:Understand basic reinforcement learning policies;
+:Research modern DRL models for robot locomotion;
+
+while (Design and develop REINFORCE baseline and TD3 models)
+    :Implement policy gradient algorithm in PyTorch;
+    :Implement agent & critic policy interfaces;
+    :Implement train & evaluate loop;
+endwhile
+
+while (Agent has achieved stable learning / stable walking?) is (No)
+    :Train & Evaluate;
+    :Plot learning curve w/ std dev confidence band;
+    :Research optimised hyperparmeters;
+    :Tune learning rate;
+    :Tune training duration;
+    :Tune network complexity;
+endwhile (Solution found)
+
+stop
+
+@enduml
