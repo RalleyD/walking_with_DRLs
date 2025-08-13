@@ -9,9 +9,9 @@ while (Design and develop REINFORCE baseline and TD3 models)
     :Implement policy gradient algorithm in PyTorch;
     :Implement agent & critic policy interfaces;
     :Implement train & evaluate loop;
-endwhile
+endwhile (Policy, Agent, Trainer)
 
-while (Agent has achieved stable learning / stable walking?) is (No)
+while (Agent has achieved stable learning / stable motion?) is (No)
     :Train & Evaluate;
     :Plot learning curve w/ std dev confidence band;
     :Research optimised hyperparmeters;
