@@ -1,5 +1,34 @@
 # walking_with_DRLs
-Evaluating the performance of DRLs against REINFORCE baseline
+Evaluating the performance of modern TD3 against REINFORCE baseline.
+
+# Project Objectives
+
+A comparative study of how existing deep reinforcement learning (DRL) models can solve the
+problem of learning a policy that enables simulated robots to walk.
+
+These simulations represent complex continuous environments, posing the following challenges:
+
+*TBD*
+
+The project serves as an A/B testing framework. Comparing a simple, on-policy trial by reward
+method i.e REINFORCE against a more modern and complex off-policy method i.e Twin Delayed Deep
+Deterministic Policy Gradient (TD3). The performance metrics shall identify the learning ability, as well as the rate of learning (how quickly the model achieves a good performance).
+
+The project shall also research future enhacments, through research i.e Decision Transformers.
+
+# Project Stages
+
+## A/B Framework:
+
+- Model (policy and agent) implementation
+- Training loop
+- Parameter tuning
+- Evaluation
+
+# Theoretical Comparison:
+- Research data in the same simulated Gymnasium environments
+- Researched model: - Decision Transformers
+
 
 
 # REINFORCE
