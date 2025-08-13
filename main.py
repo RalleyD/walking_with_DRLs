@@ -167,7 +167,7 @@ td3_train = train_td3("Walker2d-v4")
 
 td3_average_return, td3_return_std = td3_train.metrics.get_td3_learning()
 
-td3_x = np.arange(0, len(td3_average_return) *
+td3_x = np.arange(TD3_EVAL_INTERVAL, (len(td3_average_return) + 1) *
                   TD3_EVAL_INTERVAL, TD3_EVAL_INTERVAL)
 
 # plot a standalone detailed learning curve
