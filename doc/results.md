@@ -2,15 +2,9 @@
 
 discuss, evaluate and interpret the results with reference to the literature
 
-
-
 outline the structure of the results chapter - one paragraph
 
-
-
 the results shall show how the reserach question was met and answered
-
-
 
 use plots and discuss the initial baseline REINFORCE evaluation results
 
@@ -43,7 +37,7 @@ This plot follows the later structure of the training loop. Which averages the e
 
 The enhanced policy shows negligible improvements to the performance, with some improvement to training stability.
 
-An observation to the REINFORCE learning curves, thus far, show that the rate of incremental learning is very slow and almost non-existent. This is likely due to the complexity of the continuous training environment. REINFORCE does not have the capacity to converge to a strong solution over a sufficient period of time. The reward returns achieved by the REINFORCE algorithm are not sufficient to achieve a walking solution.
+An observation to the REINFORCE learning curves, thus far, show that the rate of incremental learning is very slow and almost non-existent. This is due to the complexity of the continuous training environment. REINFORCE does not have the capacity to converge to a strong solution over a sufficient period of time. The reward returns achieved by the REINFORCE algorithm are not sufficient to achieve a walking solution.
 
 TODO discuss learning rate tuning, CITE REINFORCE research.
 
@@ -61,10 +55,18 @@ TODO plot and compare the TD3 algorithm with network complexity defined in the F
 TODO further discuss the results of TD3 hyperparameter turning
 
 TODO discuss limitations
+Due to the long training times for both models, the number of trials was limited to 5, in order to capture multiple executions.
+In TD3 towards the last quarter of the time steps, the gradients reach about 7, causing large jumps in average returns. Clamping to a maximum gradient of 5 should be considered for more stable extended training durations.
 
-TODO discuss future research work and potential results - decision transformers
+TODO discuss future research work and the potential performance gains - decision transformers and CITE the sourrces.
 
-TODO Table of results, comparing REINFORCE mean returns, mean S.D, time steps, number of episodes.
+![Figure: Decision Transformer - Learning Curve](../plots/dt-learning-curve-walker2d.png)
+
+The results for the decision transformer were obtained from (TODO CITE: https://github.com/nikhilbarhate99/min-decision-transformer/tree/master/dt_runs) and show comparable behavioural policy scores to TD3. However, the time to reach a comparably robust solution is over 50 times faster. Taking 20,000 time steps compared to TD3's one million steps. 
+
+TOOD refer to research to explain why this method is so much faster to reach a suitable solution.
+
+TODO Table of results, comparing REINFORCE mean returns, mean S.D, time steps or number of updates, number of episodes.
 
 
 
