@@ -16,10 +16,10 @@ The challenge of achieving robust locomotion control extends beyond academic int
 
 In order to meet the demands of dynamically complex and continuous locomotion tasks, deep reinforcement learning models must be robust and generalise well to the intended environment. Despite the theoretical advantages of DRL, practical implementations face significant challenges:
 
-1. **Computational Complexity**: DRL algorithms require extensive computational resources and training time to reach adequate policies.
-2. **Sample Efficiency**: Basic policy gradient methods like REINFORCE suffer from high variance and slow convergence.
-3. **Stability Issues**: Training instability and overestimation bias can lead to suboptimal solutions (TODO cite).
-4. **Offline Learning Limitations**: Offline policies require high-fidelity datasets specific to the desired use case, facing difficulties when the agent encounters states for which no data exists (TODO cite).
+1. DRL algorithms require extensive computational resources and training time to reach adequate policies.
+2. Basic policy gradient methods like REINFORCE suffer from high variance and slow convergence.
+3. Training instability and overestimation bias can lead to suboptimal solutions (Fujimoto et al., 2018).
+4. Offline policies require high-fidelity datasets specific to the desired use case, facing difficulties when the agent encounters states for which no data exists (Chen et al., 2021).
 
 Modern and sophisticated research methods are required that move beyond basic policy gradient methods to address these challenges effectively.
 
@@ -63,14 +63,11 @@ The emergence of Deep Reinforcement Learning marked a paradigm shift in locomoti
 
 ### 2.2 Policy Gradient Methods and REINFORCE
 
-The REINFORCE algorithm, introduced by Williams (1992), represents one of the foundational policy gradient methods in reinforcement learning. It directly optimises the policy parameters by following the gradient of expected returns. The algorithm's simplicity and theoretical guarantees make it an attractive baseline for comparison. However, REINFORCE suffers from several well-documented limitations:
+The REINFORCE algorithm, introduced by Williams (1992), represents a foundational policy gradient method in reinforcement learning. It directly optimises the policy parameters by following the gradient of expected returns. The algorithm's simplicity and theoretical guarantees make it an attractive baseline for comparison. However, REINFORCE suffers from several well-documented limitations:
 
-- The Monte Carlo nature of return estimation leads to high variance in gradient estimates.
-- On-policy learning requires large amounts of data for convergence.
-- The algorithm often requires extensive training time to achieve adequate performance.
-- Training can be unstable, particularly in continuous action spaces.
-
-(TODO CITE)
+- The Monte Carlo nature of return estimation leads to high variance in gradient estimates (Zhao et al. 2012).
+- On-policy learning requires large amounts of data for convergence and requiring extensive training time to achieve adequate performance (Kamarulariffin, Ibrahim and Bahamid 2023).
+- Training can be unstable, particularly in continuous action spaces (Zhao et al. 2012).
 
 ### 2.3 Actor-Critic Methods and DDPG
 
@@ -78,8 +75,6 @@ The Deep Deterministic Policy Gradient (DDPG) algorithm, introduced by Lillicrap
 - Off-policy learning through experience replay.
 - Deterministic policy gradients for continuous action spaces.
 - Target networks for stable learning.
-
-(TODO CITE)
 
 However, DDPG itself faces challenges including overestimation bias and sensitivity to hyperparameters, which motivated the development of more robust variants.
 
@@ -255,6 +250,8 @@ TD3's learning curve shows:
 
 ![Figure: Initial A/B learning curve plot](../plots/Reinforce-Vs-TD3-Learning-Curve2025-08-14_10_29_15.png)
 
+TODO the reinforce confidence bar doesn't look right, could be a scale issue?
+
 - Rapid initial improvement (0-200k timesteps)
 - Steady refinement phase (200k-500k timesteps)
 - Stable performance plateau (500k+ timesteps)
@@ -285,32 +282,34 @@ Several limitations should be acknowledged:
 
 The dramatic performance difference between REINFORCE and TD3 validates the hypothesis that modern algorithms provide substantial improvements over basic methods. TD3's success can be attributed to several factors:
 
-**Off-Policy Learning**: TD3's ability to reuse past experiences through replay buffers dramatically improves sample efficiency compared to REINFORCE's on-policy requirement.
+- TD3's off-policy learning, reusing past experiences through replay buffers, dramatically improves sample efficiency compared to REINFORCE's on-policy requirement.
 
-**Value Function Approximation**: The critic networks provide more stable learning signals than REINFORCE's high-variance Monte Carlo returns.
+- The critic networks provide more stable learning signals, through value function (Q) approximation, compared to REINFORCE's high-variance Monte Carlo returns.
 
-**Algorithmic Improvements**: Twin critics, delayed updates, and target smoothing address specific failure modes in actor-critic methods.
+- Twin critics, delayed updates, and target smoothing address specific failure modes in actor-critic methods.
 
 ### 5.2 Theoretical Implications
 
 The results align with theoretical understanding:
-- REINFORCE's convergence guarantees assume sufficient exploration and small learning rates, impractical for complex continuous control
-- TD3's bias-variance tradeoff favors lower variance at the cost of some bias, more suitable for practical applications
-- The results support the importance of addressing overestimation bias in value-based methods
+- REINFORCE's convergence requires sufficient exploration and small learning rates, impractical for complex continuous control.
+- TD3's bias-variance tradeoff favors lower variance at the cost of some bias, more suitable for practical applications.
+- The results support the importance of addressing overestimation bias in value-based methods.
 
 ### 5.3 Practical Considerations
 
 For practitioners implementing locomotion controllers:
-1. **Algorithm Selection**: TD3 or similar modern algorithms should be preferred over basic policy gradients for continuous control
-2. **Network Architecture**: 256-256-128 provides good balance between capacity and efficiency
-3. **Training Duration**: Allow at least 200k timesteps for initial convergence, 1M for robust policies
-4. **Hyperparameter Sensitivity**: Learning rate and exploration noise significantly impact performance
+1. TD3 or similar modern algorithms should be preferred over basic policy gradients for continuous control.
+2. A network architecture of 256-256-128 neurons, provides good balance between capacity and efficiency.
+3. Allow at least 200k timesteps for initial convergence, 1M for robust policies.
+4. Learning rate and gradient clamping significantly impact performance.
 
 ### 5.4 Future Work: Decision Transformers
 
-Preliminary investigation into Decision Transformers shows remarkable potential. Results from existing research demonstrate:
+Preliminary investigation into Decision Transformers further potential benefits. Results from existing research demonstrate:
 
 ![Figure: Decision Transformer - Learning Curve](../plots/dt-learning-curve-walker2d.png)
+
+(TODO data obtained from cite)
 
 - Comparable performance to TD3 (behavioral scores).
 - 50× faster convergence (20,000 vs 1,000,000 timesteps).
@@ -326,9 +325,10 @@ This dramatic efficiency improvement occurs because:
 ### 5.5 Future Work
 
 Future work should explore:
-- Implementation of Decision Transformer for Walker2d
-- Transfer learning across different locomotion tasks
-- Deployment strategies for real robotic systems
+- Implementation of Decision Transformer for Walker2d.
+- Transfer learning across different locomotion tasks.
+- Deployment strategies for real robotic systems.
+- Decision Transformer architecture for future deployment.
 
 ## 6. Conclusion
 
@@ -336,44 +336,43 @@ Future work should explore:
 
 This research successfully demonstrated that modern deep reinforcement learning algorithms achieve significant, quantifiable improvements over basic approaches in simulated robot locomotion. The comparative study between REINFORCE and TD3 revealed:
 
-1. **Performance Gap**: TD3 achieved approximately 15× higher returns than enhanced REINFORCE
-2. **Learning Efficiency**: TD3 converged to stable walking within 200,000 timesteps while REINFORCE failed to achieve locomotion
-3. **Stability**: TD3 exhibited lower variance and more consistent performance across trials
-4. **Practical Viability**: Only TD3 produced policies suitable for deployment
+1. TD3 achieved 10 to 15 times higher returns than enhanced REINFORCE.
+2. TD3 converged to stable walking within 200,000 timesteps while REINFORCE failed to achieve locomotion.
+3. TD3 exhibited lower variance and more consistent performance across trials.
+4. Only TD3 produced policies suitable for deployment.
 
 ### 6.2 Contributions to Knowledge
 
 The project makes several contributions:
-- **Empirical Validation**: Quantified performance improvements achievable through algorithmic advances
-- **Implementation Framework**: Developed extensible, object-oriented pipeline for DRL research
-- **Methodological Insights**: Demonstrated importance of training loop harmonization for fair comparisons
-- **Future Directions**: Identified Decision Transformers as promising next generation approach
+- Quantified performance improvements achievable through algorithmic advances.
+- Developed an extensible, object-oriented pipeline for DRL research.
+- Developed an A/B evaluation framework, harmonising policies with differing training requirements.
+- Identified Decision Transformers as promising next generation approach.
 
 ### 6.3 Answering the Research Question
 
-The research conclusively answers the central question: **Yes, practical implementation of modern reinforcement learning research achieves simulated robot locomotion with both quantifiable and perceivable improvements over basic approaches.** The improvements are not marginal but transformative, enabling successful locomotion where basic methods fail entirely.
+The practical implementation of modern reinforcement learning research achieves simulated robot locomotion with both quantifiable and perceivable improvements over basic approaches. The improvements are not marginal but transformative, enabling successful locomotion where basic methods fail entirely.
 
 ### 6.4 Implications for Practice
 
 For researchers and practitioners in robotics and reinforcement learning:
-- Investment in modern algorithms yields substantial returns in performance
-- The additional implementation complexity of TD3 over REINFORCE is justified by results
-- Future systems should consider transformer-based approaches for further efficiency gains
+- Investment in modern algorithms yields substantial returns in performance.
+- The additional implementation complexity of TD3 over REINFORCE is justified by results.
+- Future systems should consider transformer-based approaches for further efficiency gains.
 
 ### 6.5 Limitations and Future Research
 
 While successful, this work has limitations that suggest future research directions:
-- Extension to more complex locomotion tasks and environments
-- Investigation of sim-to-real transfer strategies
-- Comprehensive hyperparameter optimization
-- Implementation and evaluation of Decision Transformers
-- Development of hybrid online-offline learning approaches
+- Extension to more complex locomotion tasks and environments.
+- Gradient management during extended training tasks.
+- Investigation of sim-to-real transfer strategies.
+- Implementation and evaluation of Decision Transformers.
 
 ### 6.6 Final Remarks
 
-The evolution from REINFORCE to TD3 to Decision Transformers exemplifies the rapid progress in deep reinforcement learning for robotics. This research demonstrates that theoretical advances translate to practical improvements, bringing us closer to robust, deployable locomotion controllers for real-world applications. As the field continues to advance, the integration of modern architectures like transformers with domain-specific knowledge promises even more dramatic improvements in the future.
+The evolution from REINFORCE to TD3 to Decision Transformers exemplifies the progress in deep reinforcement learning for robotics. This research demonstrates that theoretical advances translate to practical improvements. As the field continues to advance, the integration of modern architectures like transformers with domain-specific knowledge promises even more dramatic improvements in the future.
 
-The extensible framework developed in this project provides a foundation for continued research, enabling rapid prototyping and evaluation of new algorithms. As we move toward unified frameworks capable of perception, planning, and control, the lessons learned from this comparative study will inform the development of next-generation robotic systems.
+The extensible framework developed in this project provides a foundation for continued research, enabling rapid prototyping and evaluation of new algorithms. As frameworks move toward unified frameworks capable of perception, planning, and control, the lessons learned from this comparative study will inform the practical implementation of advanced locomotion modelling.
 
 ## References
 
@@ -385,13 +384,15 @@ Fujimoto, S., Hoof, H., & Meger, D. (2018). Addressing Function Approximation Er
 
 Glorot, X., & Bengio, Y. (2010). Understanding the difficulty of training deep feedforward neural networks. *Proceedings of the Thirteenth International Conference on Artificial Intelligence and Statistics*, 249-256.
 
-Henderson, P., Islam, R., Bachman, P., Pineau, J., Precup, D., & Meger, D. (2018). Deep reinforcement learning that matters. *Proceedings of the AAAI Conference on Artificial Intelligence*.
+KAMARULARIFFIN, A.B., A.B.M. IBRAHIM and A. BAHAMID, 2023. Improving Deep Reinforcement Learning Training Convergence using Fuzzy Logic for Autonomous Mobile Robot Navigation. International journal of advanced computer science & applications, 14(11),
 
 Lillicrap, T. P., Hunt, J. J., Pritzel, A., Heess, N., Erez, T., Tassa, Y., Silver, D., & Wierstra, D. (2015). Continuous control with deep reinforcement learning. *arXiv preprint arXiv:1509.02971*.
 
 Williams, R. J. (1992). Simple statistical gradient-following algorithms for connectionist reinforcement learning. *Machine Learning*, 8(3-4), 229-256.
 
 Bao, L., Humphreys, J., Peng, T., & Zhou, C. (2024). Deep Reinforcement Learning for Robotic Bipedal Locomotion: A Brief Survey. *arXiv preprint arXiv:2404.17070v2*.
+
+ZHAO, T. et al., 2012. Analysis and improvement of policy gradient estimation. Neural Networks, 26, 118–129
 
 ## Appendices
 
@@ -417,7 +418,9 @@ Bao, L., Humphreys, J., Peng, T., & Zhou, C. (2024). Deep Reinforcement Learning
 - Target noise: 0.2
 - Noise clip: 0.5
 
-### Appendix B: Code Repository Structure
+### Appendix B: Policy Network Summary
+
+### Appendix C: Code Repository Structure
 
 ```
 project/
@@ -439,3 +442,7 @@ project/
 ├── models/
 └── main.py
 ```
+
+#### Repository URL
+
+### Appendix D: Project Plan - Gantt Chart
