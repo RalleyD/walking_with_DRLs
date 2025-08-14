@@ -48,7 +48,11 @@ use plots and discuss the initial TD3 results
 
 Initial development and evaluation of the TD3 algorithm showed strong returns and provided a stable solution for a walking robot. The networks for the actor and critic follow a 256-256-128 hidden layer structure.
 
-TODO A/B comparison plots
+## A/B comparison plots
+
+With current TD3 network complexity (256 -> 256 -> 128 neuron hidden layers)
+
+![Figure: Initial A/B learning curve plot](../plots/Reinforce-Vs-TD3-Learning-Curve2025-08-14_10_29_15.png)
 
 TODO plot and compare the TD3 algorithm with network complexity defined in the Fujimoto paper.
 
