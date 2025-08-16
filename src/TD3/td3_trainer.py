@@ -2,6 +2,8 @@ import torch
 import torch.nn as nn
 import gymnasium as gym
 import numpy as np
+# speed profiling
+import time
 from torchinfo import summary
 from src.TD3.actor_critic_agent import ActorCriticAgent, ReplayBuffer
 from src.evaluate.performance_metrics import PerformanceMetrics
@@ -67,6 +69,7 @@ class TD3Trainer:
             eval_means = []
             eval_sds = []
             initial_actor_weight = None
+
             while time_steps <= self._time_steps:
                 if not initial_actor_weight:
                     initial_actor_weight = list(self.agent.actor.parameters())[
@@ -79,9 +82,9 @@ class TD3Trainer:
                     # randomly sample the action space
                     action = self._env.action_space.sample()
                 else:
-                    # logger.info("Model action training, step: %d" % time_steps)
                     # get action with some clipped exploration noise
                     action = self.agent.get_action(obs)
+
                     exploration_noise = torch.clamp(torch.randn_like(
                         torch.tensor(action), dtype=torch.float32) * 0.1,
                         -0.5, 0.5).numpy()
@@ -90,6 +93,7 @@ class TD3Trainer:
                 # Take action and update replay buffer
                 s_next, reward, terminated, truncated, _ = self._env.step(
                     action)
+
                 done = terminated or truncated
                 replay_buffer.add(obs, action, reward, s_next, int(done))
 
@@ -98,8 +102,8 @@ class TD3Trainer:
                     # sample a mini-batch of replays
                     states, actions, rewards, next_states, dones = zip(
                         *replay_buffer.sample(self._batch_size))
-
                     # direct conversion to tensors during stacking should be more efficient
+                    # stack_time = time.perf_counter()
                     states_tensor = torch.stack(
                         [torch.tensor(state, dtype=torch.float32) for state in states], dim=0)
                     actions_tensor = torch.stack(
@@ -112,6 +116,8 @@ class TD3Trainer:
                     done_tensor = torch.stack(
                         [torch.tensor(done) for done in dones], dim=0
                     )
+                    # logger.info("mini batch tensor stacking time: %.4f" %
+                    #             (time.perf_counter() - stack_time))
 
                     target_actions = self.agent.get_target_action(
                         next_states_tensor)
@@ -147,12 +153,14 @@ class TD3Trainer:
                     #     f"q2 targets shape: {q2_targets.shape}")
 
                     # done tensor ensures that terminal states (1) have no future value when updating targets
-                    q_targets = rewards_tensor.unsqueeze(1) + self.agent._gamma * \
-                        (1 - done_tensor.unsqueeze(1)) * \
+                    q_targets = rewards_tensor.unsqueeze(1) + \
+                        self.agent._gamma * (1 - done_tensor.unsqueeze(1)) * \
                         torch.min(q1_targets, q2_targets)
 
+                    critic_update_time = time.perf_counter()
                     q1_pred, q2_pred = self.agent.update_critics(
                         actions_tensor, states_tensor, q_targets)
+                    critic_update_duration = time.perf_counter() - critic_update_time
 
                     # logger.info(
                     #     f"q1 pred shape: {q1_pred.shape}; q2 pred shape: {q2_pred.shape}"
@@ -160,8 +168,10 @@ class TD3Trainer:
 
                     if time_steps % self._actor_update_delay == 0:
                         # update actor
+                        actor_update_time = time.perf_counter()
                         total_grad_norm = self.agent.update_actor(
                             states_tensor)
+                        actor_update_duration = time.perf_counter() - actor_update_time
 
                         if time_steps % 5000 == 0:
                             logger.info(
@@ -170,7 +180,13 @@ class TD3Trainer:
                             logger.info(
                                 f"total grad norm after 5000 time steps: {total_grad_norm}")
                         # update target networks
+                        target_update_time = time.perf_counter()
                         self.agent.update_target_networks()
+                        target_update_duration = time.perf_counter() - target_update_time
+
+                        self.diag.update_policy_exec_times(target_update_duration,
+                                                           critic_update_duration,
+                                                           actor_update_duration)
 
                 if time_steps % self._evaluate_interval == 0:
                     mean, sd = self.evaluate(current_time_step=time_steps,
@@ -186,6 +202,8 @@ class TD3Trainer:
                         f"Current actor weight: {current_actor_weight}")
                     logger.info(
                         f"Weight changed: {abs(current_actor_weight - initial_actor_weight) > 1e-6}")
+
+                    self.diag.get_policy_exec_times()
 
                 if done:
                     # reset the environment so learning can continue through this epoch/trial
@@ -281,6 +299,13 @@ class TD3Trainer:
 class EnvDiagnostics:
     def __init__(self):
         self._env = None
+        self._init_perf()
+
+    def _init_perf(self):
+        self._critic_timings = []
+        self._actor = []
+        self._target_timings = []
+        self._count = 0
 
     @classmethod
     def diagnostics(cls, env: gym.Env, agent: ActorCriticAgent):
@@ -308,3 +333,26 @@ class EnvDiagnostics:
             if terminated or truncated:
                 break
         logger.info(f"Sample random episode return: {episode_return:.2f}")
+
+    def update_policy_exec_times(self, target_time, critic_time, actor_time):
+        self._count += 1
+        print(f"{self._count=}")
+        self._target_timings.append(target_time)
+        self._critic_timings.append(critic_time)
+        self._actor.append(actor_time)
+
+    def get_policy_exec_times(self):
+        av_target_time = 0
+        av_actor_time = 0
+        av_critics_time = 0
+
+        if self._count:
+            av_target_time = sum(self._target_timings) / self._count
+            av_actor_time = sum(self._actor) / self._count
+            av_critics_time = sum(self._critic_timings) / self._count
+
+            logger.info("average target update time: %.4f" % av_target_time)
+            logger.info("average actor update time: %.4f" % av_actor_time)
+            logger.info("average critic update time: %.4f" % av_critics_time)
+
+        self._init_perf()
