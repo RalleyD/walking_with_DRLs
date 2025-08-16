@@ -11,11 +11,11 @@ class ActorPolicy(nn.Module):
 
         # define sequential model, without RELU on the output
         self.policy_net = nn.Sequential(
-            nn.Linear(obs_dim, 256),
+            nn.Linear(obs_dim, 400),
             nn.ReLU(),
-            nn.Linear(256, 128),
+            nn.Linear(400, 300),
             nn.ReLU(),
-            nn.Linear(128, action_dim)
+            nn.Linear(300, action_dim)
         )
 
     def forward(self, x: torch.Tensor) -> torch.Tensor:

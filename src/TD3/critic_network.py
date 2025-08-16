@@ -8,12 +8,12 @@ class CriticPolicy(nn.Module):
 
         # define sequential model, without RELU on the output
         self.policy_net = nn.Sequential(
-            nn.Linear(obs_dim + action_dim, 256),
+            nn.Linear(obs_dim + action_dim, 400),
             nn.ReLU(),
-            nn.Linear(256, 128),
+            nn.Linear(400, 300),
             nn.ReLU(),
             # the output is a Q value (prediction of value)
-            nn.Linear(128, 1)
+            nn.Linear(300, 1)
         )
 
     def forward(self, s: torch.Tensor, a: torch.Tensor) -> torch.Tensor:
