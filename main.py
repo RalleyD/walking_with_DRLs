@@ -43,7 +43,7 @@ REINFORCE_EVAL_INTERVAL = int(5000)
 # Hyperparameters - walker2D
 ################################
 
-TD3_LR_WALKER = 0.0003
+TD3_LR_WALKER = 0.001
 TD3_GAMMA_WALKER = 0.99
 TD3_TIME_STEPS = int(1e6)
 TD3_N_TRIALS = 10
