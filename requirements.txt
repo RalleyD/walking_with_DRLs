@@ -18,8 +18,8 @@ gymnasium==1.2.0
 imageio==2.37.0
 imageio-ffmpeg==0.6.0
 importlib_resources==6.5.2
-ipykernel==6.30.0
-ipython==9.4.0
+ipykernel
+ipython
 ipython_pygments_lexers==1.1.1
 jedi==0.19.2
 Jinja2==3.1.6
@@ -33,10 +33,10 @@ moviepy==2.2.1
 mpmath==1.3.0
 mujoco==3.3.4
 nest-asyncio==1.6.0
-networkx==3.5
-numpy==2.3.1
+networkx
+numpy
 packaging==25.0
-pandas==2.3.1
+pandas
 parso==0.8.4
 pexpect==4.9.0
 pillow==11.3.0
