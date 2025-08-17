@@ -2,6 +2,7 @@ import gymnasium as gym
 import numpy as np
 import matplotlib.pyplot as plt
 import os
+import torch
 from src.reinforce.reinforce_agent import ReinforceAgent
 from src.reinforce.reinforce_trainer import ReinforceTrainer
 from src.TD3.actor_critic_agent import ActorCriticAgent
@@ -77,7 +78,7 @@ def train_reinforce(policy,
     return trainer
 
 
-def train_td3(exp_name: str):
+def train_td3(exp_name: str, device: str = "cpu") -> TD3Trainer:
     sim_env = gym.make(exp_name)
 
     # TODO refactor duplication
@@ -89,7 +90,8 @@ def train_td3(exp_name: str):
         obs_dim=obs_dim,
         action_dim=action_dim,
         learning_rate=TD3_LR_WALKER,
-        gamma=TD3_GAMMA_WALKER
+        gamma=TD3_GAMMA_WALKER,
+        device=device,
     )
 
     td3_trainer = TD3Trainer(
@@ -106,7 +108,8 @@ def train_td3(exp_name: str):
     return td3_trainer
 
 ################################################################
-
+# ========== device setup ========== #
+device = "cuda" if torch.cuda.is_available() else "cpu"
 
 # TODO have common timestep and trials constant for A/B
 learning_curve_plotter = PlotLearningCurve(time_steps=TD3_TIME_STEPS,
@@ -163,7 +166,7 @@ learning_curve_plotter.set_reinforce_data(reinforce_av_time_steps,
 #################################################################
 
 # ========== TD3 Training =========== #
-td3_train = train_td3("Walker2d-v4")
+td3_train = train_td3("Walker2d-v4", device)
 
 td3_average_return, td3_return_std = td3_train.metrics.get_td3_learning()
 

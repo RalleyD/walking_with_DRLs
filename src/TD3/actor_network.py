@@ -4,10 +4,10 @@ import numpy as np
 
 
 class ActorPolicy(nn.Module):
-    def __init__(self, obs_dim, action_dim, max_action=1.0):
+    def __init__(self, obs_dim, action_dim, max_action=1.0, device='cpu'):
         super().__init__()
 
-        self._max_action = torch.Tensor([max_action])
+        self._max_action = torch.Tensor([max_action]).to(device)
 
         # define sequential model, without RELU on the output
         self.policy_net = nn.Sequential(
@@ -16,7 +16,7 @@ class ActorPolicy(nn.Module):
             nn.Linear(400, 300),
             nn.ReLU(),
             nn.Linear(300, action_dim)
-        )
+        ).to(device)
 
     def forward(self, x: torch.Tensor) -> torch.Tensor:
         # tanh gives a desired joint output range [-1, 1]

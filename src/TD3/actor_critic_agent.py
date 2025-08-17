@@ -3,6 +3,7 @@ import torch.nn as nn
 import numpy as np
 from pathlib import Path
 from typing import Optional
+from torchinfo import summary
 from src.TD3.critic_network import CriticPolicy
 from src.TD3.actor_network import ActorPolicy
 from src.util.plotter import PRJ_ROOT
@@ -56,6 +57,7 @@ class ActorCriticAgent:
         learning_rate: float,
         gamma: float,
         soft_target_update_tau=0.005,
+        device: str = 'cpu'
     ):
         # TODO consider a base Agent class for inheritence
         self._obs_dim = obs_dim
@@ -63,30 +65,32 @@ class ActorCriticAgent:
         self._gamma = gamma
         self._learning_rate = learning_rate
         self._tau = soft_target_update_tau
+        self._device = device
 
         # Actor
         self.actor = ActorPolicy(
-            self._obs_dim, self._action_dim, max_action=1
+            self._obs_dim, self._action_dim, max_action=1,
+            device=self._device
         )
         self.actor_optimizer = torch.optim.AdamW(
             self.actor.parameters(), lr=learning_rate)
 
         # Two critics
         self.critic1 = CriticPolicy(
-            self._obs_dim, self._action_dim
+            self._obs_dim, self._action_dim, device=self._device
         )
         self.critic1_optimizer = torch.optim.AdamW(
             self.critic1.parameters(), lr=learning_rate)
 
         self.critic2 = CriticPolicy(
-            self._obs_dim, self._action_dim
+            self._obs_dim, self._action_dim, device=self._device
         )
         self.critic2_optimizer = torch.optim.AdamW(
             self.critic2.parameters(), lr=learning_rate)
 
         # Target policies
         self.target_action = ActorPolicy(
-            self._obs_dim, self._action_dim, max_action=1
+            self._obs_dim, self._action_dim, max_action=1, device=self._device
         )
 
         self.target_action.load_state_dict(
@@ -94,7 +98,7 @@ class ActorCriticAgent:
         )
 
         self.targetQ1 = CriticPolicy(
-            self._obs_dim, self._action_dim
+            self._obs_dim, self._action_dim, device=self._device
         )
 
         self.targetQ1.load_state_dict(
@@ -102,7 +106,7 @@ class ActorCriticAgent:
         )
 
         self.targetQ2 = CriticPolicy(
-            self._obs_dim, self._action_dim
+            self._obs_dim, self._action_dim, device=self._device
         )
 
         self.targetQ2.load_state_dict(
@@ -110,32 +114,40 @@ class ActorCriticAgent:
         )
 
     def get_action(self, obs: np.array) -> np.ndarray:
-        obs_torch = torch.as_tensor(obs).float().unsqueeze(0)
+        obs_torch = torch.as_tensor(obs).float().unsqueeze(0).to(self._device)
         x = self.actor(obs_torch)
         # detatch here as we don't want to maintain gradients during environment interaction
         return x.squeeze(0).detach().cpu().numpy()
 
     def get_target_action(self, obs: torch.Tensor) -> torch.Tensor:
         # obs_torch = torch.as_tensor(obs).float().unsqueeze(0)
+        obs = obs.to(self._device)
         return self.target_action(obs).detach().cpu()  # .squeeze(0).numpy()
 
     def get_q1(self, state: torch.Tensor, action: torch.Tensor) -> torch.Tensor:
+        state = state.to(self._device)
+        action = action.to(self._device)
         return self.critic1(state, action)  # .squeeze(0).numpy()
 
     def get_q2(self, state: torch.Tensor, action: torch.Tensor) -> torch.Tensor:
+        state = state.to(self._device)
+        action = action.to(self._device)
         return self.critic2(state, action)  # .squeeze(0).numpy()
 
     def get_target_q1(self, state: torch.Tensor, action: torch.Tensor) -> torch.Tensor:
         # detach at the point the data enters the policy - breaks the tensor from the current computation graph.
-        return self.targetQ1(state.detach(), action.detach())
+        return self.targetQ1(state.detach().to(self._device), action.detach().to(self._device)).cpu()
 
     def get_target_q2(self, state: torch.Tensor, action: torch.Tensor) -> torch.Tensor:
-        return self.targetQ2(state.detach(), action.detach())
+        return self.targetQ2(state.detach().to(self._device), action.detach().to(self._device)).cpu()
 
     def update_actor(self, states: torch.Tensor):
         # tau == soft update to the targets
-        actor_loss = -self.critic1(states,
-                                   self.actor(states)).mean()
+        states = states.to(self._device)
+        actions = self.actor(states)
+        # actions = actions.to(self._device)
+        states = states.to(self._device)
+        actor_loss = -self.critic1(states, actions).mean()  # maximize Q value
 
         self.actor_optimizer.zero_grad()
         actor_loss.backward()
@@ -153,6 +165,10 @@ class ActorCriticAgent:
     def update_critics(self, actions: torch.Tensor, states: torch.Tensor, q_targets: torch.Tensor):
         # MSE loss functions (mean!)
         # using the same loss function will accumulate
+        actions = actions.to(self._device)
+        states = states.to(self._device)
+        q_targets = q_targets.to(self._device)
+
         q1_loss_fn = nn.MSELoss(reduction="mean")
         q2_loss_fn = nn.MSELoss(reduction="mean")
 
@@ -200,3 +216,12 @@ class ActorCriticAgent:
             f"\nSaving model state: {', '.join(state_data.keys())} to {out_path / filename}.")
 
         torch.save(state_data, out_path / filename)
+
+    def get_model_summary(self) -> str:
+        """Get a summary of the model architecture"""
+        
+        model_summary = summary(
+            self.actor, input_size=(self._obs_dim,),
+            device=self._device, verbose=0)
+        
+        return str(model_summary)
