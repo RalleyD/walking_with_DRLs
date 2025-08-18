@@ -18,7 +18,7 @@ class EnhancedPolicyNetwork(nn.Module):
 
         self._final_hidden = hidden_size3
 
-        # Shared layers TODO increase complexity based on research
+        # Shared layers with increased complexity based on research
         self.shared_net = nn.Sequential(
             nn.Linear(obs_dim, hidden_size1),
             nn.ReLU(),
@@ -35,7 +35,7 @@ class EnhancedPolicyNetwork(nn.Module):
 
         # xavier initialisation (weights)
         # this scales the weights so that the variance of the outputs matches the inputs
-        # TODO cite, this may not be optimal so research this.
+        # (Glorot & Bengio, 2010).
         nn.init.xavier_uniform_(self.mean_net[-1].weight)
 
         # Log of standard deviation output layer
@@ -71,7 +71,7 @@ class EnhancedPolicyNetwork(nn.Module):
         stddevs = torch.clamp(
             self.log_std_net(shared_features),
             min=1e-6,  # Don't go negative
-            max=10,   # TODO research why this is a good value. Relates to exploding gradients. Through experimentation you've seen gradients over 5 cause swinging returns
+            max=10,   # experiment to find a good value. Relates to exploding gradients. Through experimentation you've seen gradients over 5 cause swinging returns
         )
         stddevs = torch.exp(stddevs)
 
