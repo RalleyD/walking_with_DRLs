@@ -3,7 +3,7 @@ import torch.nn as nn
 
 
 class CriticPolicy(nn.Module):
-    def __init__(self, obs_dim, action_dim):
+    def __init__(self, obs_dim, action_dim, device='cpu'):
         super().__init__()
 
         # define sequential model, without RELU on the output
@@ -14,7 +14,7 @@ class CriticPolicy(nn.Module):
             nn.ReLU(),
             # the output is a Q value (prediction of value)
             nn.Linear(300, 1)
-        )
+        ).to(device)
 
     def forward(self, s: torch.Tensor, a: torch.Tensor) -> torch.Tensor:
         # to meet the input dimensions, stack inputs horizontally

@@ -4,7 +4,6 @@ import gymnasium as gym
 import numpy as np
 # speed profiling
 import time
-from torchinfo import summary
 from src.TD3.actor_critic_agent import ActorCriticAgent, ReplayBuffer
 from src.evaluate.performance_metrics import PerformanceMetrics
 from src.util.plotter import record_gif
@@ -23,9 +22,9 @@ class TD3Trainer:
     def __init__(self,
                  env: gym,
                  agent: ActorCriticAgent,
-                 policy_update_start: int = 1e3,  # as per academic paper!
-                 replay_buffer_size: int = 1e6,  # as per academic paper!
-                 replay_batch_size: int = 100,  # as per academic paper!
+                 policy_update_start: int = 1e2,  # as per academic paper!
+                 replay_buffer_size: int = 1e3,  # as per academic paper!
+                 replay_batch_size: int = 10,  # as per academic paper!
                  n_trials: int = 10,  # as per academic paper!
                  actor_update_delay: int = 2,  # as per academic paper!
                  evaluate_interval: int = 5000,  # as per academic paper!
@@ -216,9 +215,7 @@ class TD3Trainer:
             # at the end of each trial, update the learning rate data
             self.metrics.update_td3_average(eval_means, eval_sds)
 
-        model_summary = summary(
-            self.agent.actor, input_size=(self.agent._obs_dim,),
-            device='cpu', verbose=0)
+        model_summary = self.agent.get_model_summary()
 
         logger.info(
             f"=== TD3 Model Summary ===\n"
@@ -336,7 +333,6 @@ class EnvDiagnostics:
 
     def update_policy_exec_times(self, target_time, critic_time, actor_time):
         self._count += 1
-        print(f"{self._count=}")
         self._target_timings.append(target_time)
         self._critic_timings.append(critic_time)
         self._actor.append(actor_time)
