@@ -1,4 +1,20 @@
-# Deep Reinforcement Learning for Robot Locomotion: A Comparative Study of REINFORCE and TD3 Algorithms
+# Southampton Solent University
+## Department of Science and Engineering
+
+## Deep Reinforcement Learning for Robot Locomotion: A Comparative Study of REINFORCE and TD3 Algorithms
+
+### MSc Applied AI and Data Science
+### Academic Year: 2024-2025
+
+----
+
+**Daniel Ralley**
+
+**Supervisor: Kashif Talpur**
+
+*This report is submitted in partial fulfilment of the requirements of Southampton Solent  University for the degree of MSc Applied AI and Data Science*
+
+----
 
 ## Abstract
 
@@ -116,13 +132,11 @@ The independent variables include the environment state and training duration. T
 
 #### 3.2.1 Environment Setup
 
-The experiments utilize the Walker2d-v4 environment from (formerly OpenAI) Gymnasium and the MuJoCo physics engine. This environment provides:
+The experiments utilise the Walker2d-v4 environment from (formerly OpenAI) Gymnasium and the MuJoCo physics engine. This environment provides (Gymnasium 2025):
 - 17-dimensional continuous observation space including positions and velocities.
 - 6-dimensional continuous action space controlling joint torques.
 - Based on forward velocity, with penalties for falling and energy consumption.
 - Episode termination when the walker falls or reaches maximum timesteps.
-
-(TODO Cite)
 
 MuJoCo is chosen as it represents a critical component of robotics model research, providing high-fidelity physics simulation.
 
@@ -266,7 +280,8 @@ Gradient magnitudes reached over 7 in later training stages (750k timesteps and 
 | Std Deviation | High (>100) | 539.64 | - |
 | Convergence Time | Not achieved | ~200k steps | - |
 | Stable Walking | No | Yes | - |
-| Sample Efficiency | Poor | Good | - |
+| Sample Efficiency | Poor | Good | - |  
+Table: A/B Performance Comparison - REINFORCE baseline and TD3
 
 The A/B comparison clearly demonstrates TD3's superiority across all metrics. TD3 achieves approximately 15× higher returns while maintaining lower variance and achieving stable locomotion that REINFORCE could not attain.
 
@@ -309,18 +324,15 @@ Preliminary investigation into Decision Transformers further potential benefits.
 
 ![Figure: Decision Transformer - Learning Curve](../plots/dt-learning-curve-walker2d.png)
 
-(TODO data obtained from cite)
-
+Training data obtained from Barhate (2022), shows:
 - Comparable performance to TD3 (behavioral scores).
 - 50× faster convergence (20,000 vs 1,000,000 timesteps).
 - Better long-term credit assignment through attention mechanisms.
 
-This dramatic efficiency improvement occurs because:
+This dramatic efficiency improvement occurs, according to Chen et al., (2021):
 1. Transformers leverage patterns in trajectory data more effectively.
 2. No need for environmental interaction during training. This shall also provide time saving benefits.
-3. Direct credit assignment without value function approximation.
-
-(TODO Cite)
+3. Direct credit assignment without value function approximation. Meaning, when a sequence of temporal states, actions and rewards, determining at which point in time the current reward was met. This the principle difference compared to policy gradient models; directly learning the reward, rather than a value function.
 
 ### 5.5 Future Work
 
@@ -374,15 +386,21 @@ The evolution from REINFORCE to TD3 to Decision Transformers exemplifies the pro
 
 The extensible framework developed in this project provides a foundation for continued research, enabling rapid prototyping and evaluation of new algorithms. As frameworks move toward unified frameworks capable of perception, planning, and control, the lessons learned from this comparative study will inform the practical implementation of advanced locomotion modelling.
 
+----
+
 ## References
 
 Bahamid, A., et al. (2021). Deep Reinforcement Learning for Robotic Applications: A Comprehensive Survey. *Robotics and Autonomous Systems*.
+
+BARHATE, N., 2022. Minimal Implementation of Decision Transformer. GitHub Repository,
 
 Chen, L., Lu, K., Rajeswaran, A., Lee, K., Grover, A., Laskin, M., Abbeel, P., Srinivas, A., & Mordatch, I. (2021). Decision Transformer: Reinforcement Learning via Sequence Modeling. *Advances in Neural Information Processing Systems*, 34.
 
 Fujimoto, S., Hoof, H., & Meger, D. (2018). Addressing Function Approximation Error in Actor-Critic Methods. *International Conference on Machine Learning*, 1587-1596.
 
 Glorot, X., & Bengio, Y. (2010). Understanding the difficulty of training deep feedforward neural networks. *Proceedings of the Thirteenth International Conference on Artificial Intelligence and Statistics*, 249-256.
+
+GYMNASIUM, 2025. Walker2D [viewed 14 August 2025]. Available from: https://gymnasium.farama.org/environments/mujoco/walker2d/
 
 KAMARULARIFFIN, A.B., A.B.M. IBRAHIM and A. BAHAMID, 2023. Improving Deep Reinforcement Learning Training Convergence using Fuzzy Logic for Autonomous Mobile Robot Navigation. International journal of advanced computer science & applications, 14(11),
 
@@ -393,6 +411,8 @@ Williams, R. J. (1992). Simple statistical gradient-following algorithms for con
 Bao, L., Humphreys, J., Peng, T., & Zhou, C. (2024). Deep Reinforcement Learning for Robotic Bipedal Locomotion: A Brief Survey. *arXiv preprint arXiv:2404.17070v2*.
 
 ZHAO, T. et al., 2012. Analysis and improvement of policy gradient estimation. Neural Networks, 26, 118–129
+
+----
 
 ## Appendices
 
@@ -420,6 +440,61 @@ ZHAO, T. et al., 2012. Analysis and improvement of policy gradient estimation. N
 
 ### Appendix B: Policy Network Summary
 
+**TD3 Actor Model Summary**
+```
+==========================================================================================
+Layer (type:depth-idx)                   Output Shape              Param #
+==========================================================================================
+ActorPolicy                              [6]                       --
+├─Sequential: 1-1                        [6]                       --
+│    └─Linear: 2-1                       [256]                     4,608
+│    └─ReLU: 2-2                         [256]                     --
+│    └─Linear: 2-3                       [128]                     32,896
+│    └─ReLU: 2-4                         [128]                     --
+│    └─Linear: 2-5                       [6]                       774
+==========================================================================================
+Total params: 38,278
+Trainable params: 38,278
+Non-trainable params: 0
+Total mult-adds (Units.MEGABYTES): 5.39
+==========================================================================================
+Input size (MB): 0.00
+Forward/backward pass size (MB): 0.00
+Params size (MB): 0.15
+Estimated Total Size (MB): 0.16
+==========================================================================================
+```
+
+**Reinforce Model Summary**
+```
+==========================================================================================
+Layer (type:depth-idx)                   Output Shape              Param #
+==========================================================================================
+EnhancedPolicyNetwork                    [6]                       --
+├─Sequential: 1-1                        [128]                     --
+│    └─Linear: 2-1                       [256]                     4,608
+│    └─ReLU: 2-2                         [256]                     --
+│    └─Linear: 2-3                       [256]                     65,792
+│    └─ReLU: 2-4                         [256]                     --
+│    └─Linear: 2-5                       [128]                     32,896
+│    └─ReLU: 2-6                         [128]                     --
+├─Sequential: 1-2                        [6]                       --
+│    └─Linear: 2-7                       [6]                       774
+├─Sequential: 1-3                        [6]                       --
+│    └─Linear: 2-8                       [6]                       774
+==========================================================================================
+Total params: 104,844
+Trainable params: 104,844
+Non-trainable params: 0
+Total mult-adds (Units.MEGABYTES): 22.24
+==========================================================================================
+Input size (MB): 0.00
+Forward/backward pass size (MB): 0.01
+Params size (MB): 0.42
+Estimated Total Size (MB): 0.42
+==========================================================================================
+```
+
 ### Appendix C: Code Repository Structure
 
 ```
@@ -445,4 +520,8 @@ project/
 
 #### Repository URL
 
+https://github.com/RalleyD/walking_with_DRLs
+
 ### Appendix D: Project Plan - Gantt Chart
+
+----
