@@ -79,7 +79,11 @@ class TD3Trainer:
                     # logger.info("random action sampling, step: %d" %
                     #             time_steps)
                     # randomly sample the action space
-                    action = self._env.action_space.sample()
+                    # action = self._env.action_space.sample()
+                    # have the agent randomly sample the action space
+                    # this removes dependency on the policy parameters
+                    # prior to mini-batched off-policy learning.
+                    action = self.agent.get_action(obs)
                 else:
                     # get action with some clipped exploration noise
                     action = self.agent.get_action(obs)
