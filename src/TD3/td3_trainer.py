@@ -43,7 +43,7 @@ class TD3Trainer:
         self._batch_size = replay_batch_size
         self._actor_update_delay = actor_update_delay
         self._time_steps = time_steps
-        self.diag = EnvDiagnostics()
+        self.diag = EnvDiagnostics(self._env)
 
     def train(self):
         """
@@ -52,7 +52,7 @@ class TD3Trainer:
 
         # initialise replay buffer - TODO doesn't need to be a classmethod - maintains all prior experience
         replay_buffer = ReplayBuffer.init(self._replay_buf_size)
-        self.diag.diagnostics(self._env, self.agent)
+        self.diag.diagnostics(self.agent)
 
         for trial in range(self._n_trials):
             np.random.seed(trial)
@@ -298,8 +298,8 @@ class TD3Trainer:
 
 
 class EnvDiagnostics:
-    def __init__(self):
-        self._env = None
+    def __init__(self, env: gym = None):
+        self._env = env
         self._init_perf()
 
     def _init_perf(self):
@@ -308,17 +308,20 @@ class EnvDiagnostics:
         self._target_timings = []
         self._count = 0
 
-    @classmethod
-    def diagnostics(cls, env: gym.Env, agent: ActorCriticAgent):
-        cls._env = env
+    def diagnostics(self, agent: ActorCriticAgent):
         # Diagnostic test
         logger.info("=== TD3 Diagnostic ===")
-        logger.info(f"Environment: {env.spec.id}")
-        logger.info(f"Action space: {env.action_space}")
-        logger.info(f"Observation space: {env.observation_space}")
+        logger.info(f"Environment: {self._env.spec.id}")
+        logger.info(f"Action space: {self._env.action_space}")
+        logger.info(f"Observation space: {self._env.observation_space}")
+
+        if agent.get_device() == 'cuda':
+            logger.info("Using CUDA for training.")
+            logger.info("CUDA Device: %s" % str(torch.cuda.get_device_name(
+                torch.cuda.current_device())))
 
         # Test actor output
-        obs, _ = env.reset()
+        obs, _ = self._env.reset()
         action = agent.get_action(obs)
         logger.info(f"Actor output: {action}")
         logger.info(
@@ -326,10 +329,10 @@ class EnvDiagnostics:
 
         # Test random baseline (quick version)
         episode_return = 0
-        obs, _ = env.reset()
+        obs, _ = self._env.reset()
         for _ in range(1000):  # Fixed length episode
-            action = env.action_space.sample()
-            obs, reward, terminated, truncated, _ = env.step(action)
+            action = self._env.action_space.sample()
+            obs, reward, terminated, truncated, _ = self._env.step(action)
             episode_return += reward
             if terminated or truncated:
                 break

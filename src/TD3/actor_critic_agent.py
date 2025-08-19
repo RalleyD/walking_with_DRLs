@@ -225,3 +225,7 @@ class ActorCriticAgent:
             device=self._device, verbose=0)
         
         return str(model_summary)
+    
+    def get_device(self) -> str:
+        """Get the device used by the agent"""
+        return self._device
