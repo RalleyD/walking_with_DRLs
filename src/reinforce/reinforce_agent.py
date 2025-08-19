@@ -175,6 +175,8 @@ class ReinforceAgent:
         if out_path is None:
             out_path = PRJ_ROOT / "models"
 
+        out_path.mkdir(parents=True, exist_ok=True)
+
         print(
             f"\nSaving model state: {', '.join(state_data.keys())} to {out_path / filename}.")
 
