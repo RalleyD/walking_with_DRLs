@@ -186,7 +186,4 @@ logs/
 models/
 recordings/
 data/
-doc/
-!doc/rl-dissertation-report.md
-
 .vscode/
