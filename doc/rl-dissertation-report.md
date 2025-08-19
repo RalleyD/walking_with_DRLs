@@ -251,10 +251,16 @@ TD3 demonstrated markedly superior performance from initial implementation:
 
 The 256-256-128 network architecture provided sufficient capacity for learning complex locomotion patterns while maintaining computational efficiency.
 
+#### 4.3.2 Research-based Hyperparmeters
+
+The 400-300-300 neuron setup from Fujimoto et al. (2018), did not provide noticeable improvements over the initial results:
+
+
 
 Notable observations:
 - The twin critic mechanism effectively reduced overestimation bias
 - Delayed actor updates contributed to training stability
+- The higher variance could be a clue to the lower returns achieved by the project's implementation; compared to the research. Reducing the exploration noise could improve the performance. Additionally, addressing the exploding gradients observed over longer training durations may also improve training stability and achieve higher returns.
 
 ### 4.4 Comparative Analysis
 
@@ -263,8 +269,6 @@ Notable observations:
 TD3's learning curve shows:
 
 ![Figure: Initial A/B learning curve plot](../plots/Reinforce-Vs-TD3-Learning-Curve2025-08-14_10_29_15.png)
-
-TODO the reinforce confidence bar doesn't look right, could be a scale issue?
 
 - Rapid initial improvement (0-200k timesteps)
 - Steady refinement phase (200k-500k timesteps)
@@ -290,6 +294,28 @@ The A/B comparison clearly demonstrates TD3's superiority across all metrics. TD
 Several limitations should be acknowledged:
 - Limited to 5 trials due to computational constraints (each trial requiring several hours).
 - Evaluation limited to single environment (Walker2d). It would be advantageous to asses the policy's adapatability to other locomotion tasks; in order to discover further hyperparameters that can be adopted for these tasks.
+
+### 4.6 Project Implementation Plan
+
+The project plan outlines the high level objectives, stratified by per-feature tasks (not shown for conciseness) and managed on a Kanban board.
+
+![Figure: Project Gantt Chat](../doc/project-gantt.png)
+
+Incremental milestones were defined over the duration of the project, to ensure alignment to the objectives throughout the development of the project:
+
+**Milestone 1**
+- Develop, train and evaluate a minimal REINFORCE policy gradient algorithm as a baseline candidate for A/B testing.
+
+**Milestone 2**
+- Develop, train and evaluate an initial TD3 deterministic policy gradient algorithm as the refinement candidate for A/B testing.
+
+**Milestone 3**
+- Tune and Enhance the REINFORCE policy network to achieve higher performance, providing a stronger baseline and fairness for comparison.
+
+**Milestone 4**
+- Tune and Enhance the TD3 network to achieve higher performance, aligned to the reserach parameters.
+
+These milestones enabled an incremental approach to development and research, using lessons-learned from prior stages and improvements discovered through continued research.
 
 ## 5. Discussion
 
