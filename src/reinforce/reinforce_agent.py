@@ -28,6 +28,7 @@ class ReinforceAgent:
         learning_rate: float,
         gamma: float,
         max_gradient_norm: float,
+        device: str = 'cpu'
     ):
         """
         Args:
@@ -44,7 +45,9 @@ class ReinforceAgent:
         self.gamma = gamma
         self._gradient_norm = max_gradient_norm
 
-        self.policy = policy
+        self._device = device
+
+        self.policy = policy.to(self._device)
         self.optimizer = torch.optim.AdamW(
             self.policy.parameters(), lr=learning_rate)
 
@@ -53,7 +56,7 @@ class ReinforceAgent:
 
         with torch.no_grad():
             # initial mean range and std values
-            dummy_input = torch.randn(1, 17)
+            dummy_input = torch.randn(1, 17).to(self._device)
             means, stds = self.policy(dummy_input)
             logger.info(
                 f"Initial mean range {means.min():.3f} <-> {means.max():.3f}")
@@ -74,8 +77,12 @@ class ReinforceAgent:
         # the input to the policy network expects the batch
         # and the second dimension is the vector itself.
         # i.e, the in_features
-        obs_torch = torch.as_tensor(obs).float().unsqueeze(0)
+        obs_torch = torch.as_tensor(obs).float().unsqueeze(0).to(self._device)
+
+        # forward pass through the network
         means, std_devs = self.policy(obs_torch)
+        means = means.cpu()
+        std_devs = std_devs.cpu()
 
         # set current metadata
         self._set_agent_metadata(means, std_devs)
@@ -90,6 +97,7 @@ class ReinforceAgent:
         # sample the actions from the predicted distributions
         # this is policy(a | s)
         action = norm_dist.sample()
+
         # get the log probability of this action i.e
         # how likely is the policy to chose all the joint
         # angles together
