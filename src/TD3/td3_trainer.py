@@ -22,9 +22,9 @@ class TD3Trainer:
     def __init__(self,
                  env: gym,
                  agent: ActorCriticAgent,
-                 policy_update_start: int = 1e2,  # as per academic paper!
-                 replay_buffer_size: int = 1e3,  # as per academic paper!
-                 replay_batch_size: int = 10,  # as per academic paper!
+                 policy_update_start: int = 1e3,  # as per academic paper!
+                 replay_buffer_size: int = 1e6,  # as per academic paper!
+                 replay_batch_size: int = 100,  # as per academic paper!
                  n_trials: int = 10,  # as per academic paper!
                  actor_update_delay: int = 2,  # as per academic paper!
                  evaluate_interval: int = 5000,  # as per academic paper!
