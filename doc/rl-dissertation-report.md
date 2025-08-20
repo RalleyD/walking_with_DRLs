@@ -276,12 +276,14 @@ TD3's learning curve shows:
 
 Gradient magnitudes reached over 7 in later training stages (750k timesteps and beyong), causing the training loss to swing accross the optimal solution, suggesting a potential benefit from gradient clipping to 5, for extended training.
 
+n.b. The standard deviations plotted and recorded in the table correspond to half a standard deviation, aligned with the evaluation method from Fujimoto, et al (2018).
+
 **Table 1: Performance Comparison**
 
 | Metric | REINFORCE (Enhanced) | TD3 | Improvement Factor |
 |--------|---------------------|-----|-------------------|
-| Mean Returns | ~300 | 4682.82 | 15.6× |
-| Std Deviation | High (>100) | 539.64 | - |
+| Mean Returns | ~300 | ~2800 | 15.6× |
+| Std Deviation | High (>100) | ~600 | - |
 | Convergence Time | Not achieved | ~200k steps | - |
 | Stable Walking | No | Yes | - |
 | Sample Efficiency | Poor | Good | - |  
@@ -402,6 +404,8 @@ For researchers and practitioners in robotics and reinforcement learning:
 
 While successful, this work has limitations that suggest future research directions:
 - Extension to more complex locomotion tasks and environments.
+- The TD3 performance results are lower than the results from Fujimoto et al. (2018). Implementation improvments should be considered from Raffin Antonin et al (2021) 'Stable Baselines3' repository and further underpin the design rationale.
+  - Lower peak returns of approximately 1800 and higher standard deviations suggesting lower training instability.
 - Gradient management during extended training tasks.
 - Investigation of sim-to-real transfer strategies.
 - Implementation and evaluation of Decision Transformers.
