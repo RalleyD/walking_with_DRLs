@@ -125,9 +125,7 @@ class ReinforceTrainer:
                 "returns": episode_returns
             }
 
-            model_summary = summary(
-                self.agent.policy, input_size=(self.agent.obs_dim,),
-                device='cpu', verbose=0)
+            model_summary = self.agent.get_model_summary()
 
             logger.info(
                 f"=== Model Summary ===\n"

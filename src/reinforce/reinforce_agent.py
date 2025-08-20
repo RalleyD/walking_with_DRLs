@@ -1,6 +1,7 @@
 import numpy as np
 import torch
-from src.reinforce.policy_network import PolicyNetwork
+from torchinfo import summary
+from src.reinforce.enhanced_policy_network import EnhancedPolicyNetwork
 from typing import Optional
 from pathlib import Path
 from src.util.plotter import PRJ_ROOT
@@ -20,7 +21,7 @@ class ReinforceAgent:
 
     def __init__(
         self,
-        policy,
+        policy: EnhancedPolicyNetwork,
         obs_dim: int,
         action_dim: int,
         hidden_size1: int,
@@ -77,12 +78,12 @@ class ReinforceAgent:
         # the input to the policy network expects the batch
         # and the second dimension is the vector itself.
         # i.e, the in_features
-        obs_torch = torch.as_tensor(obs).float().unsqueeze(0).to(self._device)
+        obs_torch = torch.from_numpy(obs).float().unsqueeze(0).to(self._device)
 
         # forward pass through the network
         means, std_devs = self.policy(obs_torch)
-        means = means.cpu()
-        std_devs = std_devs.cpu()
+        # means = means.cpu()
+        # std_devs = std_devs.cpu()
 
         # set current metadata
         self._set_agent_metadata(means, std_devs)
@@ -112,7 +113,7 @@ class ReinforceAgent:
         entropy = norm_dist.entropy().detach().mean()
 
         # TODO detatch so that the gradients aren't maintianed during env interaction?
-        return action.squeeze(0).numpy(), prob, entropy
+        return action.squeeze(0).cpu().numpy(), prob.cpu(), entropy.cpu()
 
     def _set_agent_metadata(self, means, stds):
         self._agent_meta_means = means
@@ -120,6 +121,16 @@ class ReinforceAgent:
 
     def get_action_metadata(self):
         return self._agent_meta_means, self._agent_meta_stds
+
+    def get_model_summary(self) -> str:
+        """Get a summary of the model architecture
+        TODO refactor duplication"""
+
+        model_summary = summary(
+            self.policy, input_size=(self.obs_dim,),
+            device=self._device, verbose=0)
+
+        return str(model_summary)
 
     def update(self, log_probs, rewards):
         """Update the policy network's weights.

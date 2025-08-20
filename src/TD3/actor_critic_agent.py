@@ -218,14 +218,15 @@ class ActorCriticAgent:
         torch.save(state_data, out_path / filename)
 
     def get_model_summary(self) -> str:
-        """Get a summary of the model architecture"""
-        
+        """Get a summary of the model architecture
+        TODO refactor duplication"""
+
         model_summary = summary(
             self.actor, input_size=(self._obs_dim,),
             device=self._device, verbose=0)
-        
+
         return str(model_summary)
-    
+
     def get_device(self) -> str:
         """Get the device used by the agent"""
         return self._device
