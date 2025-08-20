@@ -12,6 +12,9 @@ from src.reinforce.enhanced_policy_network import EnhancedPolicyNetwork
 from src.reinforce.policy_network import PolicyNetwork
 
 ##########################################################################
+# TODO make these dataclasses. In order to access sim-specific parameters based
+# the selected environment
+
 N_TRIALS = 5       # evaluations over n timesteps averaged over n trials
 N_TIMESTEPS = int(1e6)   # time steps
 EVAL_INTERVAL = 5000  # evaluation interval for the agent
@@ -52,6 +55,7 @@ TD3_TIME_STEPS = N_TIMESTEPS
 TD3_N_TRIALS = N_TRIALS
 TD3_REPLAY_BUF_SIZE = TD3_TIME_STEPS
 TD3_EVAL_INTERVAL = EVAL_INTERVAL
+TD3_EXPLORE_STEPS_WALKER = 1000  # number of steps to explore before training
 
 #####################################
 # Hyperparameters - inverted pendulum
@@ -59,6 +63,12 @@ TD3_EVAL_INTERVAL = EVAL_INTERVAL
 
 TD3_LR_PENDULUM = 0.0003
 TD3_GAMMA_PENDULUM = 0.99    # discount factor on future steps
+
+#####################################
+# Cheetah will use same hyperparameters
+# as Walker2D
+#####################################
+TD3_EXPLORE_STEPS_CHEETAH = 10000  # number of steps to explore before training
 
 ################################################################
 
@@ -91,7 +101,7 @@ def train_reinforce(policy,
     return trainer
 
 
-def train_td3(exp_name: str, device: str = "cpu") -> TD3Trainer:
+def train_td3(exp_name: str, device: str = "cpu", policy_start: int = TD3_EXPLORE_STEPS_WALKER) -> TD3Trainer:
     sim_env = gym.make(exp_name)
 
     # TODO refactor duplication
@@ -111,6 +121,7 @@ def train_td3(exp_name: str, device: str = "cpu") -> TD3Trainer:
         sim_env,
         td3_actor_critic,
         time_steps=TD3_TIME_STEPS,
+        policy_update_start=policy_start,
         replay_buffer_size=TD3_REPLAY_BUF_SIZE,
         evaluate_interval=TD3_EVAL_INTERVAL,
         n_trials=TD3_N_TRIALS
@@ -157,12 +168,12 @@ def reinforce_training(gym_sim: str = "Walker2d-v4", device: str = "cpu") -> Non
                                               reinforce_sds)
 
 
-def td3_training(gym_sim: str = "Walker2d-v4", device: str = "cpu"):
+def td3_training(gym_sim: str = "Walker2d-v4", device: str = "cpu", policy_start: int = TD3_EXPLORE_STEPS_WALKER) -> None:
     """
     Main function to train the Walker2D environment using TD3 algorithm.
     """
     # ========== TD3 Training =========== #
-    td3_train = train_td3(gym_sim, device)
+    td3_train = train_td3(gym_sim, device, policy_start)
 
     td3_average_return, td3_return_std = td3_train.metrics.get_td3_learning()
 
@@ -180,7 +191,8 @@ def td3_training(gym_sim: str = "Walker2d-v4", device: str = "cpu"):
 
 def train_walker_reinforce_v_td3(learning_curve_plotter: PlotLearningCurve,
                                  sim_name="Walker2d-v4",
-                                 device: str = "cpu") -> None:
+                                 device: str = "cpu",
+                                 policy_start_steps: int = TD3_EXPLORE_STEPS_WALKER) -> None:
     """
     Train the Walker2D environment using REINFORCE and TD3 algorithms.
     """
@@ -188,7 +200,7 @@ def train_walker_reinforce_v_td3(learning_curve_plotter: PlotLearningCurve,
     reinforce_training(sim_name,
                        device)
     # Train TD3 agent
-    td3_training(sim_name, device)
+    td3_training(sim_name, device, policy_start=policy_start_steps)
 
     # Plot A/B Learning Curve
     learning_curve_plotter.plot_learning_curves()
