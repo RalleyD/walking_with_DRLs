@@ -12,23 +12,26 @@ from src.reinforce.enhanced_policy_network import EnhancedPolicyNetwork
 from src.reinforce.policy_network import PolicyNetwork
 
 ##########################################################################
+N_TRIALS = 5       # evaluations over n timesteps averaged over n trials
+N_TIMESTEPS = int(1e6)   # time steps
+EVAL_INTERVAL = 5000  # evaluation interval for the agent
 
 # ========= REINFORCE Hyperparameters ========= #
 
 #####################################
 # Hyperparameters - inverted pendulum
 #####################################
-EPOCHS = 2500   # episodes
-HIDDEN_LYR_1 = 32
-HIDDEN_LYR_2 = 32
-LR = 0.0003
-GAMMA = 0.99    # discount factor on future steps
+REINFORCE_TIME_STEPS_WALKER = N_TIMESTEPS
+REINFORCE_N_TRIALS = N_TRIALS
+HIDDEN_LYR_1_PENDULUM = 256
+HIDDEN_LYR_2_PENDULUM = 256
+HIDDEN_LYR_3_PENDULUM = 128
+LR_PENDULUM = 0.0003
+GAMMA_PENDULUM = 0.99    # discount factor on future steps
 
 ################################
 # Hyperparameters - walker2D
 ################################
-REINFORCE_N_TRIALS = 5
-REINFORCE_TIME_STEPS_WALKER = int(1e6)   # time steps
 HIDDEN_LYR_1_WALKER = 256
 HIDDEN_LYR_2_WALKER = 256
 HIDDEN_LYR_3_WALKER = 128
@@ -36,7 +39,6 @@ HIDDEN_LYR_3_WALKER = 128
 LR_WALKER = 0.0001  # see literature
 GAMMA_WALKER = 0.99    # discount factor on future steps
 MAX_GRADIENT_NORM = 0.5  # clips the gradient norms for all the policy parameters
-REINFORCE_EVAL_INTERVAL = int(5000)
 
 # ========= TD3 Hyperparameters ========= #
 
@@ -44,18 +46,28 @@ REINFORCE_EVAL_INTERVAL = int(5000)
 # Hyperparameters - walker2D
 ################################
 
-TD3_LR_WALKER = 0.001
+TD3_LR_WALKER = 0.0003
 TD3_GAMMA_WALKER = 0.99
-TD3_TIME_STEPS = int(1e6)
-TD3_N_TRIALS = 5
+TD3_TIME_STEPS = N_TIMESTEPS
+TD3_N_TRIALS = N_TRIALS
 TD3_REPLAY_BUF_SIZE = TD3_TIME_STEPS
-TD3_EVAL_INTERVAL = 5000
+TD3_EVAL_INTERVAL = EVAL_INTERVAL
+
+#####################################
+# Hyperparameters - inverted pendulum
+#####################################
+
+TD3_LR_PENDULUM = 0.0003
+TD3_GAMMA_PENDULUM = 0.99    # discount factor on future steps
 
 ################################################################
 
 
 def train_reinforce(policy,
-                    env: gym.Env) -> ReinforceTrainer:
+                    env: gym.Env,
+                    obs_dim,
+                    action_dim,
+                    device='cpu') -> ReinforceTrainer:
 
     reinforce_agent = ReinforceAgent(
         policy,
@@ -65,13 +77,14 @@ def train_reinforce(policy,
         HIDDEN_LYR_2_WALKER,
         LR_WALKER,
         GAMMA_WALKER,
-        MAX_GRADIENT_NORM
+        MAX_GRADIENT_NORM,
+        device=device
     )
 
     trainer = ReinforceTrainer(env, reinforce_agent,
                                n_timesteps=REINFORCE_TIME_STEPS_WALKER,
                                n_trials=REINFORCE_N_TRIALS,
-                               evaluate_interval=REINFORCE_EVAL_INTERVAL)
+                               evaluate_interval=EVAL_INTERVAL)
 
     trainer.train()
 
@@ -107,85 +120,89 @@ def train_td3(exp_name: str, device: str = "cpu") -> TD3Trainer:
 
     return td3_trainer
 
+
 ################################################################
-# ========== device setup ========== #
-device = "cuda" if torch.cuda.is_available() else "cpu"
-
-# TODO have common timestep and trials constant for A/B
-learning_curve_plotter = PlotLearningCurve(time_steps=TD3_TIME_STEPS,
-                                           trials=TD3_N_TRIALS)
-
-# =========== Train REINFORCE Agent ============ #
-sim_env = gym.make("Walker2d-v4")
-obs_dim = sim_env.observation_space.shape[0]
-action_dim = sim_env.action_space.shape[0]
-
-reinforce_policy = EnhancedPolicyNetwork(
-    obs_dim, action_dim,
-    HIDDEN_LYR_1_WALKER, HIDDEN_LYR_2_WALKER,
-    HIDDEN_LYR_3_WALKER)
-
-# reinforce_policy = PolicyNetwork(
-#     obs_dim, action_dim, HIDDEN_LYR_1_WALKER, HIDDEN_LYR_2_WALKER)
-
-reinforce_trainer = train_reinforce(reinforce_policy,
-                                    sim_env)
-
-# =========== Plot Reinforce stats ============ #
-
-# # h line
-# stable_convergence = reinforce_trainer.metrics.stable_convergence_time()
 
 
-# evaluation_figure_a_b(metrics_a=reinforce_trainer.metrics)
+def reinforce_training(gym_sim: str = "Walker2d-v4", device: str = "cpu") -> None:
+    """
+    Train the Walker2D environment using REINFORCE algorithm.
 
-# TODO
-# for plotting reinforce learning curve with average returns vs time steps
-# because reinforce is on-policy trained per-episode, the time step evaluation (x)
-# is provided in a stacked np.array (x,y,z) from the performance metrics method.
-# then get arr[:,1] for y axis mean and x[;,0] axis time step values (z is std dev)
+    """
+    # =========== Train REINFORCE Agent ============ #
+    sim_env = gym.make(gym_sim)
+    obs_dim = sim_env.observation_space.shape[0]
+    action_dim = sim_env.action_space.shape[0]
 
-reinforce_av_time_steps, reinforce_mean_returns, reinforce_sds = \
-    reinforce_trainer.metrics.get_reinforce_learning()
+    reinforce_policy = EnhancedPolicyNetwork(
+        obs_dim, action_dim,
+        HIDDEN_LYR_1_WALKER, HIDDEN_LYR_2_WALKER,
+        HIDDEN_LYR_3_WALKER)
 
-learning_curve_plotter.set_reinforce_data(reinforce_av_time_steps,
-                                          reinforce_mean_returns,
-                                          reinforce_sds)
+    # reinforce_policy = PolicyNetwork(
+    #     obs_dim, action_dim, HIDDEN_LYR_1_WALKER, HIDDEN_LYR_2_WALKER)
 
-# plot a standalone, detailed learning curve
-# learning_rate_ma(x=reinforce_av_time_steps,
-#                  y=reinforce_mean_returns,
-#                  #  target_ep=target_reached,
-#                  #  convergence_ep=stable_convergence,
-#                  title=f"Reinforce Learning Curve, {REINFORCE_N_TRIALS} trials. layers: {HIDDEN_LYR_1_WALKER}, {HIDDEN_LYR_2_WALKER}",
-#                  time_steps=REINFORCE_TIME_STEPS_WALKER,
-#                  lyr1=HIDDEN_LYR_1_WALKER,
-#                  lyr2=HIDDEN_LYR_2_WALKER,
-#                  lyr3=HIDDEN_LYR_3_WALKER
-#                  )
-#################################################################
+    reinforce_trainer = train_reinforce(reinforce_policy,
+                                        sim_env,
+                                        obs_dim,
+                                        action_dim,
+                                        device=device)
 
-# ========== TD3 Training =========== #
-td3_train = train_td3("Walker2d-v4", device)
+    # =========== Plot Reinforce stats ============ #
+    reinforce_av_time_steps, reinforce_mean_returns, reinforce_sds = \
+        reinforce_trainer.metrics.get_reinforce_learning()
 
-td3_average_return, td3_return_std = td3_train.metrics.get_td3_learning()
+    learning_curve_plotter.set_reinforce_data(reinforce_av_time_steps,
+                                              reinforce_mean_returns,
+                                              reinforce_sds)
 
-td3_x = np.arange(TD3_EVAL_INTERVAL, (len(td3_average_return) + 1) *
-                  TD3_EVAL_INTERVAL, TD3_EVAL_INTERVAL)
 
-# plot a standalone detailed learning curve
-# learning_rate_ma(x,
-#                  y=td3_average_return,
-#                  title="TD3 Learning curve, Average over 10 trials")
+def td3_training(gym_sim: str = "Walker2d-v4", device: str = "cpu"):
+    """
+    Main function to train the Walker2D environment using TD3 algorithm.
+    """
+    # ========== TD3 Training =========== #
+    td3_train = train_td3(gym_sim, device)
 
-learning_curve_plotter.set_td3_data(td3_x,
-                                    td3_average_return,
-                                    td3_return_std)
+    td3_average_return, td3_return_std = td3_train.metrics.get_td3_learning()
+
+    td3_x = np.arange(TD3_EVAL_INTERVAL, (len(td3_average_return) + 1) *
+                      TD3_EVAL_INTERVAL, TD3_EVAL_INTERVAL)
+
+    learning_curve_plotter.set_td3_data(td3_x,
+                                        td3_average_return,
+                                        td3_return_std)
 
 #################################################################
 
-# ========== Plot A/B Learning Curve =========== #
+# ========== Training Wrapper Functions ======== #
 
-learning_curve_plotter.plot_learning_curves()
+
+def train_walker_reinforce_v_td3(learning_curve_plotter: PlotLearningCurve,
+                                 sim_name="Walker2d-v4",
+                                 device: str = "cpu") -> None:
+    """
+    Train the Walker2D environment using REINFORCE and TD3 algorithms.
+    """
+    # Train REINFORCE agent
+    reinforce_training(sim_name,
+                       device)
+    # Train TD3 agent
+    td3_training(sim_name, device)
+
+    # Plot A/B Learning Curve
+    learning_curve_plotter.plot_learning_curves()
+
 
 #################################################################
+
+if __name__ == "__main__":
+    # ========== device setup ========== #
+    device = "cuda" if torch.cuda.is_available() else "cpu"
+
+    learning_curve_plotter = PlotLearningCurve(time_steps=TD3_TIME_STEPS,
+                                               trials=TD3_N_TRIALS)
+    # ========== Training ========== #
+    train_walker_reinforce_v_td3(learning_curve_plotter,
+                                 sim_name="Walker2d-v4",
+                                 device=device)
