@@ -255,7 +255,7 @@ The 256-256-128 network architecture provided sufficient capacity for learning c
 
 The 400-300-300 neuron setup from Fujimoto et al. (2018), did not provide noticeable improvements over the initial results:
 
-
+![Figure: Research-based Policy Network, learning rate increased to 0.001](../plots/Reinforce-Vs-TD3-Learning-Curve2025-08-16_04_04_17.png)
 
 Notable observations:
 - The twin critic mechanism effectively reduced overestimation bias
@@ -284,7 +284,7 @@ n.b. The standard deviations plotted and recorded in the table correspond to hal
 |--------|---------------------|-----|-------------------|
 | Mean Returns | ~300 | ~2800 | 15.6× |
 | Std Deviation | High (>100) | ~600 | - |
-| Convergence Time | Not achieved | ~200k steps | - |
+| Convergence | Not achieved | ~200k steps | - |
 | Stable Walking | No | Yes | - |
 | Sample Efficiency | Poor | Good | - |  
 Table: A/B Performance Comparison - REINFORCE baseline and TD3
