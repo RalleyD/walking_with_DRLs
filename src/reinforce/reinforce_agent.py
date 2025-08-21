@@ -57,7 +57,7 @@ class ReinforceAgent:
 
         with torch.no_grad():
             # initial mean range and std values
-            dummy_input = torch.randn(1, 17).to(self._device)
+            dummy_input = torch.randn(1, self.obs_dim).to(self._device)
             means, stds = self.policy(dummy_input)
             logger.info(
                 f"Initial mean range {means.min():.3f} <-> {means.max():.3f}")
