@@ -92,8 +92,8 @@ def train_reinforce(policy,
     )
 
     trainer = ReinforceTrainer(env, reinforce_agent,
-                               n_timesteps=REINFORCE_TIME_STEPS_WALKER,
-                               n_trials=REINFORCE_N_TRIALS,
+                               n_timesteps=N_TIMESTEPS,
+                               n_trials=N_TRIALS,
                                evaluate_interval=EVAL_INTERVAL)
 
     trainer.train()
@@ -212,8 +212,8 @@ if __name__ == "__main__":
     # ========== device setup ========== #
     device = "cuda" if torch.cuda.is_available() else "cpu"
 
-    learning_curve_plotter = PlotLearningCurve(time_steps=TD3_TIME_STEPS,
-                                               trials=TD3_N_TRIALS)
+    learning_curve_plotter = PlotLearningCurve(time_steps=N_TIMESTEPS,
+                                               trials=N_TRIALS)
     # ========== Training ========== #
     train_walker_reinforce_v_td3(learning_curve_plotter,
                                  sim_name="Walker2d-v4",
