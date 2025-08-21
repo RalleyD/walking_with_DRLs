@@ -260,7 +260,7 @@ The 400-300-300 neuron setup from Fujimoto et al. (2018), did not provide notice
 Notable observations:
 - The twin critic mechanism effectively reduced overestimation bias
 - Delayed actor updates contributed to training stability
-- The higher variance could be a clue to the lower returns achieved by the project's implementation; compared to the research. Reducing the exploration noise could improve the performance. Additionally, addressing the exploding gradients observed over longer training durations may also improve training stability and achieve higher returns.
+- The higher variance could be a clue to the lower returns achieved by the project's implementation; compared to the research. Reducing the exploration noise could improve the performance. Additionally, addressing the exploding gradients observed over longer training durations may also improve training stability and achieve higher returns. Gradient clipping was not applied in accordance with the research (Fujimoto et al., 2018).
 
 ### 4.4 Comparative Analysis
 
@@ -274,7 +274,7 @@ TD3's learning curve shows:
 - Steady refinement phase (200k-500k timesteps)
 - Stable performance plateau (500k+ timesteps)
 
-Gradient magnitudes reached over 7 in later training stages (750k timesteps and beyong), causing the training loss to swing accross the optimal solution, suggesting a potential benefit from gradient clipping to 5, for extended training.
+Gradient magnitudes reached over 7 in later training stages (750k timesteps and beyond), causing the training loss to swing accross the optimal solution, suggesting a potential benefit from gradient clipping to 5, for extended training.
 
 n.b. The standard deviations plotted and recorded in the table correspond to half a standard deviation, aligned with the evaluation method from Fujimoto, et al (2018).
 
@@ -282,14 +282,14 @@ n.b. The standard deviations plotted and recorded in the table correspond to hal
 
 | Metric | REINFORCE (Enhanced) | TD3 | Improvement Factor |
 |--------|---------------------|-----|-------------------|
-| Mean Returns | ~300 | ~2800 | 15.6× |
+| Mean Returns | ~300 | ~2800 | 9.3× |
 | Std Deviation | High (>100) | ~600 | - |
 | Convergence | Not achieved | ~200k steps | - |
 | Stable Walking | No | Yes | - |
 | Sample Efficiency | Poor | Good | - |  
 Table: A/B Performance Comparison - REINFORCE baseline and TD3
 
-The A/B comparison clearly demonstrates TD3's superiority across all metrics. TD3 achieves approximately 15× higher returns while maintaining lower variance and achieving stable locomotion that REINFORCE could not attain.
+The A/B comparison demonstrates TD3's superiority. TD3 achieves approximately 9 times higher returns, achieving stable locomotion that REINFORCE could not attain.
 
 ### 4.5 Limitations
 
@@ -551,7 +551,5 @@ project/
 #### Repository URL
 
 https://github.com/RalleyD/walking_with_DRLs
-
-### Appendix D: Project Plan - Gantt Chart
 
 ----
