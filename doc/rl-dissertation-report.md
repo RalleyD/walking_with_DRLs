@@ -289,16 +289,16 @@ In both cases, TD3 was able to achieve returns sufficient for a stable solution,
 
 **Table 1: Performance Comparison**
 
-| Metric | REINFORCE (Enhanced) | TD3 | Improvement Factor |
-|--------|---------------------|-----|-------------------|
-| Mean Returns | ~300 | ~2800 | 9.3× |
-| Std Deviation | High (>100) | ~600 | - |
-| Convergence | Not achieved | ~200k steps | - |
-| Stable Walking | No | Yes | - |
-| Sample Efficiency | Poor | Good | - |  
-Table: A/B Performance Comparison - REINFORCE baseline and TD3
+| Agent | Environment | Mean Returns | Std Deviation | Convergence | Stable Solution |
+|-------|-------------|--------------|---------------|-------------|-----------------|
+| TD3 | Walker2D-v4 | ~2800         | ~600         | ~200k steps | Yes         |
+| Reinforce | Walker2D-v4 | ~300    | ~100         | Not achieved | No        |
+| TD3 | Cheetah-v4  | ~5000        | ~500          | ~200k steps | Yes             |
+| Reinforce | Cheetah-v4 | ~(-700) | -             | Not achieved | No             |
+| TD3 | InvertedPendulum-v4 | ~980 | ~300          | ~200k steps | Yes             |
+| Reinforce | InvertedPendulum-v4 | ~30 | -         | Not achieved | No             |
 
-The A/B comparison demonstrates TD3's superiority. TD3 achieves approximately 9 times higher returns, achieving stable locomotion that REINFORCE could not attain.
+The A/B comparison demonstrates TD3's superiority. TD3 achieves a stable solution in every tested environment, with a consistent convergence time, achieving a solution REINFORCE could not attain.
 
 ### 4.5 Limitations
 
