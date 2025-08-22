@@ -15,7 +15,7 @@ from src.reinforce.policy_network import PolicyNetwork
 # TODO make these dataclasses. In order to access sim-specific parameters based
 # the selected environment
 
-N_TRIALS = 5       # evaluations over n timesteps averaged over n trials
+N_TRIALS = 4       # evaluations over n timesteps averaged over n trials
 N_TIMESTEPS = int(1e6)   # time steps
 EVAL_INTERVAL = 5000  # evaluation interval for the agent
 
@@ -215,6 +215,10 @@ if __name__ == "__main__":
     learning_curve_plotter = PlotLearningCurve(time_steps=N_TIMESTEPS,
                                                trials=N_TRIALS)
     # ========== Training ========== #
+    # train_walker_reinforce_v_td3(learning_curve_plotter,
+    #                              sim_name="Walker2d-v4",
+    #                              device=device)
     train_walker_reinforce_v_td3(learning_curve_plotter,
-                                 sim_name="Walker2d-v4",
-                                 device=device)
+                                 sim_name="HalfCheetah-v4",
+                                 device=device,
+                                 policy_start_steps=TD3_EXPLORE_STEPS_CHEETAH)
