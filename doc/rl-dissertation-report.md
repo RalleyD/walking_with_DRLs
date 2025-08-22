@@ -559,4 +559,22 @@ project/
 
 https://github.com/RalleyD/walking_with_DRLs
 
+### Appendix D: Glossary
+
+Agent:
+
+Actor:
+
+Network:
+
+Policy:
+
+Gradient: The rate of change of loss from a predicted action.
+
+Environment: The simulated object that is acted upon by a neural network agent.
+
+Observation: The current state of the environment, following a reset or action.
+
+State: analogous to observation.
+
 ----
