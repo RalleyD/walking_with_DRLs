@@ -20,6 +20,8 @@
 
 The landscape of legged robot locomotion using deep reinforcement learning has evolved dramatically since the introduction of basic policy gradient methods like REINFORCE. This study synthesizes recent advances in algorithms, methodologies, and applications that collectively demonstrate the field's progression toward robust, efficient, and real-world deployable locomotion controllers. The findings reveal significant opportunities for improving upon basic REINFORCE implementations through modern algorithms, advanced training techniques, and domain-specific optimisations. This research project provides a comparative study of basic and advanced deep reinforcement learning models for the purposes of solving robot mobility, demonstrating that a practical implementation of modern research in reinforcement learning can achieve simulated robot locomotion with quantifiable and perceivable improvements over basic reinforcement learning approaches.
 
+The study practically demonstrates the superiority of the TD3 algorithm over the REINFORCE algorithm. This is due to the twin-actor critic architecture and delayed deterministic policy update method, enabling higher training stability, lower sample variance and training error. Compared to the singular on-policy, per-episode and stochastic update method of REINFORCE. The study demonstrates, through research data, a more modern approach known as Decision Transformers which, demonstrate stronger performance by performing autoregressive modelling on the reward trajectory.
+
 ## 1. Introduction
 
 ### 1.1 Background and Motivation
@@ -170,6 +172,7 @@ The harmonisation addresses the fundamental difference between REINFORCE (per-ep
 #### 3.3.1 REINFORCE Implementation
 
 The REINFORCE policy network architecture comprises:
+
 - **Shared Body Network**:
   - Input layer: State dimensions → 256 neurons.
   - Hidden layer 1: 256 → 256 neurons with ReLU activation.
@@ -182,14 +185,18 @@ The REINFORCE policy network architecture comprises:
   - Bias initialisation to stabilise initial estimates.
   - Gradient clipping (max gradient norm = 5) to prevent exploding gradients.
 
-The ReLU activation functions introduce non-linearity, enabling the network to learn complex, non-linear relationships between states and actions.
+TODO 
+did the initialisation help much? check commit dates to find the right plots
+later, in the dicussion chaper include how the basline in reinfoce could help with variance and stability, potentially achieving stronger results.
 
 #### 3.3.2 TD3 Implementation
 
 The TD3 architecture follows Fujimoto et al. (2018):
-- **Actor Network**: 256-256-128 hidden layers
-- **Twin Critic Networks**: Each with 256-256-128 architecture
-- **Target Networks**: Soft updates with τ = 0.005
+- Actor Network: 256-256-128 hidden layers.
+- Twin Critic Networks: 
+  - Each with 256-256-128 architecture.
+  - Linear, single output to estimate the Q-value.
+- Target Networks: Soft updates with τ = 0.005.
 
 **Key Parameters**:
 - Learning rate: 3e-4
@@ -199,11 +206,17 @@ The TD3 architecture follows Fujimoto et al. (2018):
 - Actor update delay: 2 critic updates per actor update
 - Target policy noise: σ = 0.2, clipped to ±0.5
 
+#### 3.3.3 Common Network Attributes
+
+Research supported by, ..., note the use of rectified linear unit activation functions between the hidden layers. Since a perceptron acts as a linear regression unit, in this case, the activation function provides non-linearity, essential for solving non-linear mappings between states and actions, encountered in complex control problems.
+
+For the output layers. i.e the mean action values in REINFORCE and the estimated actor actions in TD3, tanh activation is used to limit the outputs within the expected environment bounds.
+
 ### 3.4 Evaluation Methodology
 
-Performance evaluation follows established protocols:
+Performance evaluation follows established protocols (Fujimoto et al, 2018):
 1. Evaluation every 5,000 timesteps during training.
-2. 10 evaluation episodes with deterministic policy (no exploration noise).
+2. 10 evaluation episodes with a deterministic policy (no exploration noise).
 3. Mean episode returns and standard deviation across trials collected for learning curve plotting.
 
 ### 3.5 Implementation Architecture
@@ -293,18 +306,20 @@ The TD3 learning curve, illustrated in figure 8, shows:
 - Steady refinement phase (200k-500k timesteps)
 - Stable performance plateau (500k+ timesteps)
 
+The results align with experiments conducted by Shen (2024). Which also demonstrate a steady upward trend following a steep initial ascent.
+
 Gradient magnitudes reached over 7 in later training stages (750k timesteps and beyond), causing the training loss to swing accross the optimal solution, suggesting a potential benefit from gradient clipping to 5, for extended training.
 
 n.b. The standard deviations plotted and recorded in the table correspond to half a standard deviation, aligned with the evaluation method from Fujimoto, et al (2018).
 
 #### 4.4.2 Cross-evaluation in Other Simulations
 
-Both TD3 and Reinforce were compared in the Cheetah and 'Inverted-Pendulum' environments. This provided confidence in the agent's ability to learn mechanisms of higher (Cheetah) and lower (Inverted Pendulum) complexity and to assess the relative performance improvement of TD3 over REINFORCE across tasks.
+Both TD3 and Reinforce were compared in the 'Cheetah' and 'Inverted-Pendulum' environments. This provided confidence in the agent's ability to learn mechanisms of higher (Cheetah) and lower (Inverted Pendulum) complexity and to assess the relative performance improvement of TD3 over REINFORCE across tasks.
 In following figure, the Cheetah simulation (left), almost identical results were achieved with the TD3 initial policy network and the policy network configuration from the research.
 
-![Figure: HalfCheetah-v4 (left), InvertedPendulum-v4 (right)](../plots/cheetah-inv-pendulum-learning-curves.png)
+![Figure 9: HalfCheetah-v4 (left), InvertedPendulum-v4 (right)](../plots/cheetah-inv-pendulum-learning-curves.png)
 
-In both cases, TD3 was able to achieve returns sufficient for a stable solution, while REINFORCE was not. REINFORCE was able to balance the pendulum for a short period of time, ultimately leading to early termination, due to exceeding the vertical angle limit.
+Figure 9 illustrates that, in both cases, TD3 was able to achieve returns sufficient for a stable solution, while REINFORCE was not. REINFORCE was able to balance the pendulum for a short period of time, ultimately leading to early termination, due to exceeding the vertical angle limit.
 
 **Table 1: Performance Comparison**
 
@@ -315,36 +330,15 @@ In both cases, TD3 was able to achieve returns sufficient for a stable solution,
 | TD3 | Cheetah-v4  | ~5000        | ~500          | ~200k steps | Yes             |
 | Reinforce | Cheetah-v4 | ~(-700) | -             | Not achieved | No             |
 | TD3 | InvertedPendulum-v4 | ~980 | ~300          | ~200k steps | Yes             |
-| Reinforce | InvertedPendulum-v4 | ~30 | -         | Not achieved | No             |
+| Reinforce | InvertedPendulum-v4 | ~30 | -         | Not achieved | No             |  
+Table 1: Performance Evaluation Summary.
 
-The A/B comparison demonstrates TD3's superiority. TD3 achieves a stable solution in every tested environment, with a consistent convergence time, achieving a solution REINFORCE could not attain.
+The A/B comparison results in table 1, demonstrates TD3's superiority. TD3 achieves a stable solution in every tested environment, with a consistent convergence time, achieving a solution REINFORCE could not attain.
 
 ### 4.5 Limitations
 
-The evaluation of each model and in each simulation was limited to 5 trials due to computational constraints (each trial requiring several hours).
+The evaluation of each model and in each simulation was limited to 5 trials due to computational constraints (each trial requiring several hours), differing from 10 trials in the research (Zhao et al. 2012; Fujimoto et al. 2018).
 Training optimisation should be considered with regards to early stopping when a plateau is detected, indicating convergence.
-
-### 4.6 Project Implementation Plan
-
-The project plan outlines the high level objectives, stratified by per-feature tasks (not shown for conciseness) and managed on a Kanban board.
-
-![Figure: Project Gantt Chat](../doc/project-gantt.png)
-
-Incremental milestones were defined over the duration of the project, to ensure alignment to the objectives throughout the development of the project:
-
-**Milestone 1**
-- Develop, train and evaluate a minimal REINFORCE policy gradient algorithm as a baseline candidate for A/B testing.
-
-**Milestone 2**
-- Develop, train and evaluate an initial TD3 deterministic policy gradient algorithm as the refinement candidate for A/B testing.
-
-**Milestone 3**
-- Tune and Enhance the REINFORCE policy network to achieve higher performance, providing a stronger baseline and fairness for comparison.
-
-**Milestone 4**
-- Tune and Enhance the TD3 network to achieve higher performance, aligned to the reserach parameters.
-
-These milestones enabled an incremental approach to development and research, using lessons-learned from prior stages and improvements discovered through continued research.
 
 ## 5. Discussion
 
@@ -356,7 +350,14 @@ The dramatic performance difference between REINFORCE and TD3 validates the hypo
 
 - The critic networks provide more stable learning signals, through value function (Q) approximation, compared to REINFORCE's high-variance Monte Carlo returns.
 
-- Twin critics, delayed updates, and target smoothing address specific failure modes in actor-critic methods.
+REINFORCE learns directly after each episode, collecting environment rewards and action probabilities from each episode step, creating two scenarios both relating to training instability.
+
+Firstly, the policy is updated regardless of strong or weak environment interactions, leading to training instability (observed in the flucuating returns between each episode, in figures 3 and 4). TD3, in contrast, uses a replay buffer of environment interactions for a pre-determined duration during training. In the event of temporal correlation between successive steps, randomly sampling the replay buffer can prevent large and volatile updates (Fujimoto et al., 2018).
+
+Secondly, REINFORCE trains on-policy without a value function to critisise the policy's action selections. TD3 utilises an off-policy approach by training a critic network separately to learn the action-value (Q) function. Guiding the actor to update its policy from the critic's learned experience. In this latter form, the actor learns to select actions that aim to maximise the Q-value estimate provided by the critic (Shen 2024).
+
+To address specific failure modes in actor-critic methods, TD3 enhances deterministic policy gradient methods further with twin critics, delayed updates, and target smoothing:
+
 
 ### 5.2 Theoretical Implications
 
@@ -375,19 +376,20 @@ For practitioners implementing locomotion controllers:
 
 ### 5.4 Future Work: Decision Transformers
 
-Preliminary investigation into Decision Transformers further potential benefits. Results from existing research demonstrate:
+The learning curve results in figure 10, present further potential benefits by using Decision Transformers for reinforcement learning:
 
-![Figure: Decision Transformer - Learning Curve](../plots/dt-learning-curve-walker2d.png)
+![Figure 10: Decision Transformer - Learning Curve](../plots/dt-learning-curve-walker2d.png)
 
-Training data obtained from Barhate (2022), shows:
+Evaluation data in figure 10, obtained from Barhate (2022), shows:
 - Comparable performance to TD3 (behavioral scores).
 - 50× faster convergence (20,000 vs 1,000,000 timesteps).
 - Better long-term credit assignment through attention mechanisms.
 
-This dramatic efficiency improvement occurs, according to Chen et al., (2021):
+This dramatic efficiency improvement occurs, according to Chen et al., (2021) because:
+
 1. Transformers leverage patterns in trajectory data more effectively.
 2. No need for environmental interaction during training. This shall also provide time saving benefits.
-3. Direct credit assignment without value function approximation. Meaning, when a sequence of temporal states, actions and rewards, determining at which point in time the current reward was met. This the principle difference compared to policy gradient models; directly learning the reward, rather than a value function.
+3. Direct credit assignment without value function approximation. Meaning, when a sequence of temporal states, actions and rewards, are used to determine at which point in time the current reward was met. This the principle difference compared to policy gradient models; directly learning the reward trajectory, rather than a value function.
 
 ### 5.5 Future Work
 
@@ -398,6 +400,8 @@ Future work should explore:
 - Decision Transformer architecture for future deployment.
 
 ## 6. Conclusion
+
+The study provided a comprehensive analysis of the research across multiple deep reinforcement learning algorithms, for the purpose of solving mulitple simulated robot mobility tasks. The study demonstrated a deployable framework with a practical implementation of these methods. Validating the research results and demonstrating that an actor-critic method, while more complex in code, is easier to initialise and tune for desired results.
 
 ### 6.1 Summary of Findings
 
@@ -461,6 +465,8 @@ GYMNASIUM, 2025. Walker2D [viewed 14 August 2025]. Available from: https://gymna
 KAMARULARIFFIN, A.B., A.B.M. IBRAHIM and A. BAHAMID, 2023. Improving Deep Reinforcement Learning Training Convergence using Fuzzy Logic for Autonomous Mobile Robot Navigation. International journal of advanced computer science & applications, 14(11),
 
 Lillicrap, T. P., Hunt, J. J., Pritzel, A., Heess, N., Erez, T., Tassa, Y., Silver, D., & Wierstra, D. (2015). Continuous control with deep reinforcement learning. *arXiv preprint arXiv:1509.02971*.
+
+SHEN, X., 2024. Comparison of DDPG and TD3 Algorithms in a Walker2D Scenario. Atlantis Press International BV, pp.148
 
 STAPELBERG, B. and K.M. MALAN, 2020. A survey of benchmarking frameworks for reinforcement learning. South African Computer Journal, 32(2), 258–292
 
@@ -595,5 +601,27 @@ Environment: The simulated object that is acted upon by a neural network agent.
 Observation: The current state of the environment, following a reset or action.
 
 State: analogous to observation.
+
+### Appendix C: Project Plan
+
+The project plan outlines the high level objectives, stratified by per-feature tasks (not shown for conciseness) and managed on a Kanban board.
+
+![Figure: Project Gantt Chat](../doc/project-gantt.png)
+
+Incremental milestones were defined over the duration of the project, to ensure alignment to the objectives throughout the development of the project:
+
+**Milestone 1**
+- Develop, train and evaluate a minimal REINFORCE policy gradient algorithm as a baseline candidate for A/B testing.
+
+**Milestone 2**
+- Develop, train and evaluate an initial TD3 deterministic policy gradient algorithm as the refinement candidate for A/B testing.
+
+**Milestone 3**
+- Tune and Enhance the REINFORCE policy network to achieve higher performance, providing a stronger baseline and fairness for comparison.
+
+**Milestone 4**
+- Tune and Enhance the TD3 network to achieve higher performance, aligned to the reserach parameters.
+
+These milestones enabled an incremental approach to development and research, using lessons-learned from prior stages and improvements discovered through continued research.
 
 ----
