@@ -297,24 +297,32 @@ Gradient magnitudes reached over 7 in later training stages (750k timesteps and 
 
 n.b. The standard deviations plotted and recorded in the table correspond to half a standard deviation, aligned with the evaluation method from Fujimoto, et al (2018).
 
+#### 4.4.2 Cross-evaluation in Other Simulations
+
+Both TD3 and Reinforce were compared in the Cheetah and 'Inverted-Pendulum' environments. This provided confidence in the agent's ability to learn mechanisms of higher (Cheetah) and lower (Inverted Pendulum) complexity and to assess the relative performance improvement of TD3 over REINFORCE across tasks.
+In following figure, the Cheetah simulation (left), almost identical results were achieved with the TD3 initial policy network and the policy network configuration from the research.
+
+![Figure: HalfCheetah-v4 (left), InvertedPendulum-v4 (right)](../plots/cheetah-inv-pendulum-learning-curves.png)
+
+In both cases, TD3 was able to achieve returns sufficient for a stable solution, while REINFORCE was not. REINFORCE was able to balance the pendulum for a short period of time, ultimately leading to early termination, due to exceeding the vertical angle limit.
+
 **Table 1: Performance Comparison**
 
-| Metric | REINFORCE (Enhanced) | TD3 | Improvement Factor |
-|--------|---------------------|-----|-------------------|
-| Mean Returns | ~300 | ~2800 | 9.3× |
-| Std Deviation | High (>100) | ~600 | - |
-| Convergence | Not achieved | ~200k steps | - |
-| Stable Walking | No | Yes | - |
-| Sample Efficiency | Poor | Good | - |  
-Table: A/B Performance Comparison - REINFORCE baseline and TD3
+| Agent | Environment | Mean Returns | Std Deviation | Convergence | Stable Solution |
+|-------|-------------|--------------|---------------|-------------|-----------------|
+| TD3 | Walker2D-v4 | ~2800         | ~600         | ~200k steps | Yes         |
+| Reinforce | Walker2D-v4 | ~300    | ~100         | Not achieved | No        |
+| TD3 | Cheetah-v4  | ~5000        | ~500          | ~200k steps | Yes             |
+| Reinforce | Cheetah-v4 | ~(-700) | -             | Not achieved | No             |
+| TD3 | InvertedPendulum-v4 | ~980 | ~300          | ~200k steps | Yes             |
+| Reinforce | InvertedPendulum-v4 | ~30 | -         | Not achieved | No             |
 
-The A/B comparison demonstrates TD3's superiority. TD3 achieves approximately 9 times higher returns, achieving stable locomotion that REINFORCE could not attain.
+The A/B comparison demonstrates TD3's superiority. TD3 achieves a stable solution in every tested environment, with a consistent convergence time, achieving a solution REINFORCE could not attain.
 
 ### 4.5 Limitations
 
-Several limitations should be acknowledged:
-- Limited to 5 trials due to computational constraints (each trial requiring several hours).
-- Evaluation limited to single environment (Walker2d). It would be advantageous to asses the policy's adapatability to other locomotion tasks; in order to discover further hyperparameters that can be adopted for these tasks.
+The evaluation of each model and in each simulation was limited to 5 trials due to computational constraints (each trial requiring several hours).
+Training optimisation should be considered with regards to early stopping when a plateau is detected, indicating convergence.
 
 ### 4.6 Project Implementation Plan
 
@@ -422,7 +430,6 @@ For researchers and practitioners in robotics and reinforcement learning:
 ### 6.5 Limitations and Future Research
 
 While successful, this work has limitations that suggest future research directions:
-- Extension to more complex locomotion tasks and environments.
 - The TD3 performance results are lower than the results from Fujimoto et al. (2018). Implementation improvments should be considered from Raffin Antonin et al (2021) 'Stable Baselines3' repository and further underpin the design rationale.
   - Lower peak returns of approximately 1800 and higher standard deviations suggesting lower training instability.
 - Gradient management during extended training tasks.
@@ -570,5 +577,23 @@ project/
 #### Repository URL
 
 https://github.com/RalleyD/walking_with_DRLs
+
+### Appendix D: Glossary
+
+Agent:
+
+Actor:
+
+Network:
+
+Policy:
+
+Gradient: The rate of change of loss from a predicted action.
+
+Environment: The simulated object that is acted upon by a neural network agent.
+
+Observation: The current state of the environment, following a reset or action.
+
+State: analogous to observation.
 
 ----
