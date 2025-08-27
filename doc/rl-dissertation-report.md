@@ -18,13 +18,13 @@
 
 ## Abstract
 
-The landscape of legged robot locomotion using deep reinforcement learning has evolved dramatically since the introduction of basic policy gradient methods like REINFORCE. This literature review synthesizes recent advances in algorithms, methodologies, and applications that collectively demonstrate the field's progression toward robust, efficient, and real-world deployable locomotion controllers. The findings reveal significant opportunities for improving upon basic REINFORCE implementations through modern algorithms, advanced training techniques, and domain-specific optimisations. This research project provides a comparative study of basic and advanced deep reinforcement learning models for the purposes of solving robot mobility, demonstrating that a practical implementation of modern research in reinforcement learning can achieve simulated robot locomotion with quantifiable and perceivable improvements over basic reinforcement learning approaches.
+The landscape of legged robot locomotion using deep reinforcement learning has evolved dramatically since the introduction of basic policy gradient methods like REINFORCE. This study synthesizes recent advances in algorithms, methodologies, and applications that collectively demonstrate the field's progression toward robust, efficient, and real-world deployable locomotion controllers. The findings reveal significant opportunities for improving upon basic REINFORCE implementations through modern algorithms, advanced training techniques, and domain-specific optimisations. This research project provides a comparative study of basic and advanced deep reinforcement learning models for the purposes of solving robot mobility, demonstrating that a practical implementation of modern research in reinforcement learning can achieve simulated robot locomotion with quantifiable and perceivable improvements over basic reinforcement learning approaches.
 
 ## 1. Introduction
 
 ### 1.1 Background and Motivation
 
-Deep Reinforcement Learning (DRL) has emerged as a transformative approach for solving complex control problems in robotics, particularly in the domain of bipedal and multi-legged locomotion. As identified by Bahamid et al., deep reinforcement learning plays a "vital role in the applications of navigation, detection and prediction about robotic analysis." The field has witnessed remarkable progress from early model-based approaches that relied on simplified dynamics representations, such as the Linear Inverted Pendulum Model (LIPM), to sophisticated learning-based methods that can handle the full complexity of robot-environment interactions.
+Deep Reinforcement Learning (DRL) has emerged as a transformative approach for solving complex control problems in robotics, particularly in the domain of bipedal and multi-legged locomotion. As identified by Bahamid et al. (2023, p.935), deep reinforcement learning plays a "vital role in the applications of navigation, detection and prediction about robotic analysis." The field has witnessed remarkable progress from early model-based approaches that relied on simplified dynamics representations, such as the Linear Inverted Pendulum Model (LIPM), to sophisticated learning-based methods that can handle the full complexity of robot-environment interactions.
 
 The challenge of achieving robust locomotion control extends beyond academic interest. Bipedal and humanoid robots hold significant potential for real-world applications in manufacturing, where they can perform tasks requiring additional tools, thereby enhancing productivity and reducing labour demands. Their precision is particularly advantageous in complex environments such as multi-level workplaces, with the potential to remove humans from operating in hazardous environments.
 
@@ -63,7 +63,8 @@ To validate this hypothesis and answer the research question, the project aims t
 
 ### 1.5 Contributions
 
-This work makes several contributions to the field:
+This work makes the following contributions to the field:
+
 - A comprehensive A/B testing framework for comparing DRL algorithms in locomotion tasks.
 - Practical implementation insights for both REINFORCE and TD3 in continuous control domains.
 - Quantitative analysis of performance improvements achievable through modern algorithms.
@@ -71,11 +72,11 @@ This work makes several contributions to the field:
 
 ## 2. Literature Review
 
-### 2.1 Evolution of Bipedal Locomotion Control
+The field of bipedal robot locomotion has undergone significant evolution since the 1980s. Traditional model-based approaches spearheaded early research, with methods like the Linear Inverted Pendulum Model (LIPM) providing simplified representations of bipedal dynamics. While these approaches offered rapid convergence and predictive capabilities, they "fell short in dynamically complex environments requiring adaptivity" (Bao et al. 2025).
 
-The field of bipedal robot locomotion has undergone significant evolution since the 1980s. Traditional model-based approaches spearheaded early research, with methods like the Linear Inverted Pendulum Model (LIPM) providing simplified representations of bipedal dynamics. While these approaches offered rapid convergence and predictive capabilities, they fell short in dynamically complex environments requiring adaptivity.
+The emergence of Deep Reinforcement Learning marked a paradigm shift in locomotion control. Unlike model-based approaches that rely on predefined dynamics, DRL enables robots to autonomously discover control strategies through trial and error, allowing for greater adaptability and in complex environments. This transition has been particularly significant for handling the full dynamics of robot-environment interactions (Bao et al. 2025).
 
-The emergence of Deep Reinforcement Learning marked a paradigm shift in locomotion control. Unlike model-based approaches that rely on predefined dynamics, DRL enables robots to autonomously discover control strategies through trial and error, allowing for greater adaptability and in complex environments. This transition has been particularly significant for handling the full dynamics of robot-environment interactions.
+The following literature presents the development of reinforcement learning from basic policy gradient algorithms, to deterministic methods, that aim to improve upon the limitations of prior deterministic policies. Further, the research investigated an offline approach. Providing a comprehensive review of methods, highlighting the distinct advantages in robot control.
 
 ### 2.2 Policy Gradient Methods and REINFORCE
 
@@ -88,6 +89,7 @@ The REINFORCE algorithm, introduced by Williams (1992), represents a foundationa
 ### 2.3 Actor-Critic Methods and DDPG
 
 The Deep Deterministic Policy Gradient (DDPG) algorithm, introduced by Lillicrap et al. (2015), addressed many limitations of basic policy gradient methods by combining actor-critic architecture with deep neural networks. DDPG leverages:
+
 - Off-policy learning through experience replay.
 - Deterministic policy gradients for continuous action spaces.
 - Target networks for stable learning.
@@ -102,7 +104,7 @@ Fujimoto et al. (2018) introduced TD3 as an advancement of DDPG, specifically ad
 2. The actor is updated less frequently than the critics, improving stability.
 3. Noise is added to target actions, preventing exploitation of Q-function approximation errors.
 
-Research has demonstrated TD3's superior performance across various continuous control benchmarks. In Walker2d environments, TD3 achieves average returns of 4682.82 ± 539.64 compared to DDPG's 3098.11, representing a significant improvement in both performance and stability.
+Research has demonstrated TD3's superior performance across various continuous control benchmarks. In Walker2d environments, TD3 achieves average returns of 4682.82 ± 539.64 compared to DDPG's 3098.11 (Fujimoto et al., 2018), representing a significant improvement in both performance and stability.
 
 ### 2.5 Emerging Approaches: Transformers in RL
 
@@ -116,23 +118,35 @@ This approach demonstrates the potential for leveraging advances in natural lang
 
 ### 2.6 Simulation Environments and Benchmarks
 
-The MuJoCo physics engine has become a standard for continuous control benchmarks in reinforcement learning research (Fujimoto et al., 2018), (Chen et al., 2021). The Walker2d-v4 environment, in particular, provides a challenging testbed for bipedal locomotion algorithms, requiring coordination of multiple joints while maintaining balance and forward progress.
+The MuJoCo physics engine has become a standard for continuous control benchmarks in reinforcement learning research (Fujimoto et al., 2018; Chen et al., 2021). The Walker2d-v4 environment in particular, provides a challenging testbed for bipedal locomotion algorithms, requiring coordination of multiple joints while maintaining balance and forward progress.
 
 ## 3. Methodology
+
+The methodology follows an iterative, research-driven implementation. Focusing intially on the basic policy gradient method, an appropriate algorithm shall be implemented, following an extensible, object-oriented design that enables separation of responsibilities of the policy network, agent and training code. While, providing extensibility to more advanced algorithms. Following a baseline implementation that can be soley evaluated, a suitable advanced algorithm from the research shall be implemented; expanding on the baseline framework to perform A/B evaluation.
 
 ### 3.1 Research Design
 
 This research employs a comparative design to evaluate the performance of basic and advanced deep reinforcement learning algorithms for robot locomotion. The methodology follows a systematic approach aligned with the research question, utilising quantitative metrics to assess algorithm performance.
 
-![Figure: High-level Project Flow Chart](../out/doc/diagrams/project-flow/project-flow.png)
+![Figure 1: High-level Project Flow Chart](../out/doc/diagrams/project-flow/project-flow.png)
 
-The independent variables include the environment state and training duration. The dependent variables comprise episode returns and environment actions. The data is collected by an actor policy, through online interaction with the simulated environment, rather than from static sources.
+The flow chart in figure 1 presents a high-level overview of the project stages.
+
+- The research shall inform the design and implementation of the baseline and advanced DRL algorithms. 
+- The agents for both the baseline and advanced algorithms shall be trained and evaluated via the training loop, repeated until a policy is learned whereby a simulated environment demonstrates both a quantifiable and percieveable locomotion.
+- Suitable performance shall be quantified through the research i.e a suitable return score that equates to a robust solution. Perceivable performance shall be captured by means of environment recording; the simulation shall not terminate early due to a failure condition. 
+- For each training iteration, either hyperparameters or the network complexity shall be adjusted; the performance monitored through learning curve plots and simulation recordings.
+
+Further, the process shall evaluate both algorithms in different locomotion tasks. This demonstrates the advantages of an adaptable policy, by learning the dynamics of other environments. While, determining whether a simpler algorithm can solve a less-complex environment.
+
+The agent collects data through online interaction with the environment, rather than static sources. The states and rewards collected, can be attributed to dependent variables; actions, being the independent variables. The states and rewards are directly influenced by the action taken. By taking actions through trial and error, the agent learns a policy which aims to maximise the long term reward (Stapelberg and Malan 2020). 
 
 ### 3.2 Experimental Framework
 
 #### 3.2.1 Environment Setup
 
 The experiments utilise the Walker2d-v4 environment from (formerly OpenAI) Gymnasium and the MuJoCo physics engine. This environment provides (Gymnasium 2025):
+
 - 17-dimensional continuous observation space including positions and velocities.
 - 6-dimensional continuous action space controlling joint torques.
 - Based on forward velocity, with penalties for falling and energy consumption.
@@ -140,16 +154,16 @@ The experiments utilise the Walker2d-v4 environment from (formerly OpenAI) Gymna
 
 MuJoCo is chosen as it represents a critical component of robotics model research, providing high-fidelity physics simulation.
 
-#### 3.2.2 Training Loop Harmonization
+#### 3.2.2 Training Loop Harmonisation
 
 To enable direct comparison between REINFORCE and TD3, a unified training framework was developed:
 
 - Both algorithms train over one million timesteps, providing a common time base for evaluation.
 - Performance evaluated every 5,000 timesteps (following Fujimoto et al., 2018).
 - 5 trials per experiment to capture variance and ensure statistical significance. Reduced from the 10-trial evaluation method of Fujimoto (2018) to reduce experiement time.
-- Standardised performance tracking across both algorithms i.e. Mean returns and standard deviation of returns during evaluation.
+- Standardised performance tracking across both algorithms i.e. mean returns and standard deviation of returns during evaluation.
 
-The harmonistion addresses the fundamental difference between REINFORCE (per-episode updates) and TD3 (per-timestep updates) while respecting each algorithm's requirements.
+The harmonisation addresses the fundamental difference between REINFORCE (per-episode updates) and TD3 (per-timestep updates) while respecting each algorithm's requirements.
 
 ### 3.3 Algorithm Implementations
 
@@ -194,21 +208,19 @@ Performance evaluation follows established protocols:
 
 ### 3.5 Implementation Architecture
 
-The project follows object-oriented design principles:
+The project follows object-oriented design principles, illustrated in figure 2:
 
-![Figure: Project class diagram](../out/doc/diagrams/DRL-framework-class/DRL-framework-class.png)
+![Figure 2: Project class diagram](../out/doc/diagrams/DRL-framework-class/DRL-framework-class.png)
 
 - Policy classes that encapsulate network architectures and forward passes.
 - Agent classes that manage actioning and policy updates.
 - Trainer classes that control training loops and evaluation.
-- Metrics class that track and aggregate performance data.
+- Metrics class to track and aggregate performance data.
 - Plotting class that generates learning curves and comparisons.
 
-This modular design enables easy extension for future algorithms and experiments.
+This modular design enables extension for future algorithms and experiments.
 
 ## 4. Results
-
-### 4.1 Overview
 
 The results demonstrate clear performance differences between REINFORCE and TD3 algorithms in the Walker2d locomotion task. The evaluation encompasses learning curves collected over multiple trials.
 
@@ -216,48 +228,55 @@ The results demonstrate clear performance differences between REINFORCE and TD3 
 
 #### 4.2.1 Initial Implementation
 
-![Figure: Learning Curve - Initial REINFORCE Model](../plots/Reinforce-Learning-Curve_-layers-64_-64.png)
+The initial REINFORCE implementation with two hidden layers of 64 neurons showed limited learning capability, illustrated in figures 3 and 4:
 
-![Figure: Hyperparameter tuning - REINFORCE - increase model complexity and training duration](../plots/Reinforce-Learning-Curve_-layers-128_-1282025-07-26_03_30_59.png)
+![Figure 3: Learning Curve - Initial REINFORCE Model](../plots/Reinforce-Learning-Curve_-layers-64_-64.png)
 
-The initial REINFORCE implementation with two hidden layers of 64 neurons showed limited learning capability. The learning curve exhibited high variance with minimal upward trend, achieving average returns below 300 over extended training. Increasing network capacity to 128 neurons per layer and extending training duration did not yield significant improvements.
+Increasing the model complexity and the training duration to 250,000 episodes, illustrated in Figure 4:
+
+![Figure 4: Hyperparameter tuning - REINFORCE - increase model complexity and training duration](../plots/Reinforce-Learning-Curve_-layers-128_-1282025-07-26_03_30_59.png)
+
+In figures 3 and 4, the learning curve exhibited high variance with minimal upward trend, achieving average returns below 300 over extended training. Increasing network capacity to 128 neurons per layer and extending training duration did not yield significant improvements.
 
 #### 4.2.2 Enhanced REINFORCE
 
-After implementing enhancements including:
+Figure 5 presents the learning curve following implementing enhancements, including:
+
 - Increased model complexity (256-256-128 architecture)
 - Xavier initialization for weight initialization
 - Gradient clipping (max norm = 5)
 
-![Figure: Model tuning and intialisation enhancements - REINFORCE](../plots/Reinforce-Learning-Curve_-5-trials.-layers-256_-256-lyr1256_-lyr2256_-lyr31282025-08-08_19_41_43.png)
+![Figure 5: Model tuning and intialisation enhancements - REINFORCE](../plots/Reinforce-Learning-Curve_-5-trials.-layers-256_-256-lyr1256_-lyr2256_-lyr31282025-08-08_19_41_43.png)
 
 The enhanced policy showed marginal improvements in training stability but negligible performance gains. The learning curves demonstrate that REINFORCE's incremental learning rate remains extremely slow, attributed to:
-- High variance in policy gradient estimates
-- On-policy learning limitations requiring new data for each update
-- Difficulty handling the continuous, high-dimensional action space
+
+- High variance in policy gradient estimates TODO CITE
+- On-policy learning limitations requiring new data for each update TODO CITE
+- Difficulty handling the continuous, high-dimensional action space TODO CITE
 
 A clear observation, REINFORCE lacks the capacity to converge to a strong walking solution within practical training timeframes, with reward returns insufficient for stable locomotion.
 
 ### 4.3 TD3 Performance
-
-#### 4.3.1 Initial Results
 
 TD3 demonstrated markedly superior performance from initial implementation:
 - ~3250 returns score (over 10 trials).
 - Stable walking achieved within 1 million timesteps
 - Low variance across trials indicating robust learning
 
+#### 4.3.1 Initial Results
+
 ![Figure: Initial TD3 evaluation - Learning Curve](../plots/TD3-Learning-curve_-Average-over-10-trials2025-08-05_15_20_33.png)
 
-The 256-256-128 network architecture provided sufficient capacity for learning complex locomotion patterns while maintaining computational efficiency.
+The learning curve illustrated in figure 6 demonstrates that a 256-256-128 network architecture provided sufficient capacity for learning complex locomotion patterns. Yielding a stable solution within one million time steps and a model complexity comparable to the reinforce basline, demonstrates computational efficiency. Approximate returns of ~3250 indicates that the agent has learned robust solution; the simulation environment walks without failing.
 
 #### 4.3.2 Research-based Hyperparmeters
 
 The 400-300-300 neuron setup from Fujimoto et al. (2018), did not provide noticeable improvements over the initial results:
 
-![Figure: Research-based Policy Network, learning rate increased to 0.001](../plots/Reinforce-Vs-TD3-Learning-Curve2025-08-16_04_04_17.png)
+![Figure 7: Research-based Policy Network, learning rate increased to 0.001](../plots/Reinforce-Vs-TD3-Learning-Curve2025-08-16_04_04_17.png)
 
-Notable observations:
+The following notable observations can be made:
+
 - The twin critic mechanism effectively reduced overestimation bias
 - Delayed actor updates contributed to training stability
 - The higher variance could be a clue to the lower returns achieved by the project's implementation; compared to the research. Reducing the exploration noise could improve the performance. Additionally, addressing the exploding gradients observed over longer training durations may also improve training stability and achieve higher returns. Gradient clipping was not applied in accordance with the research (Fujimoto et al., 2018).
@@ -266,9 +285,9 @@ Notable observations:
 
 #### 4.4.1 Training Dynamics
 
-TD3's learning curve shows:
+The TD3 learning curve, illustrated in figure 8, shows:
 
-![Figure: Initial A/B learning curve plot](../plots/Reinforce-Vs-TD3-Learning-Curve2025-08-14_10_29_15.png)
+![Figure 8: Initial A/B learning curve plot](../plots/Reinforce-Vs-TD3-Learning-Curve2025-08-14_10_29_15.png)
 
 - Rapid initial improvement (0-200k timesteps)
 - Steady refinement phase (200k-500k timesteps)
@@ -420,7 +439,7 @@ The extensible framework developed in this project provides a foundation for con
 
 ## References
 
-Bahamid, A., et al. (2021). Deep Reinforcement Learning for Robotic Applications: A Comprehensive Survey. *Robotics and Autonomous Systems*.
+Bao, L., Humphreys, J., Peng, T., & Zhou, C. (2024). Deep Reinforcement Learning for Robotic Bipedal Locomotion: A Brief Survey. *arXiv preprint arXiv:2404.17070v2*.
 
 BARHATE, N., 2022. Minimal Implementation of Decision Transformer. GitHub Repository,
 
@@ -436,9 +455,9 @@ KAMARULARIFFIN, A.B., A.B.M. IBRAHIM and A. BAHAMID, 2023. Improving Deep Reinfo
 
 Lillicrap, T. P., Hunt, J. J., Pritzel, A., Heess, N., Erez, T., Tassa, Y., Silver, D., & Wierstra, D. (2015). Continuous control with deep reinforcement learning. *arXiv preprint arXiv:1509.02971*.
 
-Williams, R. J. (1992). Simple statistical gradient-following algorithms for connectionist reinforcement learning. *Machine Learning*, 8(3-4), 229-256.
+STAPELBERG, B. and K.M. MALAN, 2020. A survey of benchmarking frameworks for reinforcement learning. South African Computer Journal, 32(2), 258–292
 
-Bao, L., Humphreys, J., Peng, T., & Zhou, C. (2024). Deep Reinforcement Learning for Robotic Bipedal Locomotion: A Brief Survey. *arXiv preprint arXiv:2404.17070v2*.
+Williams, R. J. (1992). Simple statistical gradient-following algorithms for connectionist reinforcement learning. *Machine Learning*, 8(3-4), 229-256.
 
 ZHAO, T. et al., 2012. Analysis and improvement of policy gradient estimation. Neural Networks, 26, 118–129
 
