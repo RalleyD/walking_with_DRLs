@@ -174,24 +174,31 @@ The harmonisation addresses the fundamental difference between REINFORCE (per-ep
 The REINFORCE policy network architecture comprises:
 
 - **Shared Body Network**:
+
   - Input layer: State dimensions → 256 neurons.
   - Hidden layer 1: 256 → 256 neurons with ReLU activation.
   - Hidden layer 2: 256 → 128 neurons with ReLU activation.
+
 - **Policy Heads**:
+
   - Mean output: 128 → action dimensions (6).
   - Log standard deviation: 128 → action dimensions (6).
+
 - **Initialisation and Stabilisation**
+
   - Xavier for weight initialisation (Glorot & Bengio, 2010).
   - Bias initialisation to stabilise initial estimates.
   - Gradient clipping (max gradient norm = 5) to prevent exploding gradients.
 
-TODO 
-did the initialisation help much? check commit dates to find the right plots
-later, in the dicussion chaper include how the basline in reinfoce could help with variance and stability, potentially achieving stronger results.
+The actor provides an interface for the training loop to action and update the policy. REINFORCE employs a stochastic gradient method, enabling exploration of the environment. Therefore the outputs are considered as a distribution of the mean for each joint action. When the agent performs a forward pass on the network, the means and standard deviations are converted to a gaussian distribution. The distributions are sampled, which provides the estimated action. From these distributions, the log of the probabilities of each action is summed, a measure of the confidence the agent has in taking all estimated actions (Zhao et al. 2012).
+
+In order to provide a positive value to represent the standard deviation, the policy output is exponentiated.
+also mention why exp was used to manage very small and very large values and why this is important
 
 #### 3.3.2 TD3 Implementation
 
 The TD3 architecture follows Fujimoto et al. (2018):
+
 - Actor Network: 256-256-128 hidden layers.
 - Twin Critic Networks: 
   - Each with 256-256-128 architecture.
@@ -199,6 +206,7 @@ The TD3 architecture follows Fujimoto et al. (2018):
 - Target Networks: Soft updates with τ = 0.005.
 
 **Key Parameters**:
+
 - Learning rate: 3e-4
 - Discount factor (γ): 0.99
 - Replay buffer size: 1,000,000
@@ -206,9 +214,11 @@ The TD3 architecture follows Fujimoto et al. (2018):
 - Actor update delay: 2 critic updates per actor update
 - Target policy noise: σ = 0.2, clipped to ±0.5
 
+TODO briefly discuss the actor and critics role, with the agent.
+
 #### 3.3.3 Common Network Attributes
 
-Research supported by, ..., note the use of rectified linear unit activation functions between the hidden layers. Since a perceptron acts as a linear regression unit, in this case, the activation function provides non-linearity, essential for solving non-linear mappings between states and actions, encountered in complex control problems.
+Research supported by, TODO CITE..., note the use of rectified linear unit activation functions between the hidden layers. Since a perceptron acts as a linear regression unit in this case, the activation function provides non-linearity, essential for solving non-linear mappings between states and actions, encountered in complex control problems.
 
 For the output layers. i.e the mean action values in REINFORCE and the estimated actor actions in TD3, tanh activation is used to limit the outputs within the expected environment bounds.
 
@@ -261,11 +271,15 @@ Figure 5 presents the learning curve following implementing enhancements, includ
 
 ![Figure 5: Model tuning and intialisation enhancements - REINFORCE](../plots/Reinforce-Learning-Curve_-5-trials.-layers-256_-256-lyr1256_-lyr2256_-lyr31282025-08-08_19_41_43.png)
 
-The enhanced policy showed marginal improvements in training stability but negligible performance gains. The learning curves demonstrate that REINFORCE's incremental learning rate remains extremely slow, attributed to:
+The enhanced policy learning curve, in figure 5, showed marginal improvements in training stability but negligible performance gains. The learning curves demonstrate that REINFORCE's incremental learning rate remains extremely slow, attributed to:
 
 - High variance in policy gradient estimates TODO CITE
 - On-policy learning limitations requiring new data for each update TODO CITE
 - Difficulty handling the continuous, high-dimensional action space TODO CITE
+
+TODO 
+did the initialisation help much and elaborate on the init? check commit dates to find the right plots
+later, in the dicussion chaper include how the basline in reinfoce could help with variance and stability, potentially achieving stronger results.
 
 A clear observation, REINFORCE lacks the capacity to converge to a strong walking solution within practical training timeframes, with reward returns insufficient for stable locomotion.
 
@@ -278,7 +292,7 @@ TD3 demonstrated markedly superior performance from initial implementation:
 
 #### 4.3.1 Initial Results
 
-![Figure: Initial TD3 evaluation - Learning Curve](../plots/TD3-Learning-curve_-Average-over-10-trials2025-08-05_15_20_33.png)
+![Figure 6: Initial TD3 evaluation - Learning Curve](../plots/TD3-Learning-curve_-Average-over-10-trials2025-08-05_15_20_33.png)
 
 The learning curve illustrated in figure 6 demonstrates that a 256-256-128 network architecture provided sufficient capacity for learning complex locomotion patterns. Yielding a stable solution within one million time steps and a model complexity comparable to the reinforce basline, demonstrates computational efficiency. Approximate returns of ~3250 indicates that the agent has learned robust solution; the simulation environment walks without failing.
 
@@ -592,7 +606,7 @@ Actor:
 
 Network:
 
-Policy:
+Policy: "The control strategy of an agent used to make decisions... a mapping from states to actions" (Stapelberg and Malan 2020).
 
 Gradient: The rate of change of loss from a predicted action.
 
