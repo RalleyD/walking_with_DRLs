@@ -162,7 +162,7 @@ To enable direct comparison between REINFORCE and TD3, a unified training framew
 
 - Both algorithms train over one million timesteps, providing a common time base for evaluation.
 - Performance evaluated every 5,000 timesteps (following Fujimoto et al., 2018).
-- 5 trials per experiment to capture variance and ensure statistical significance. Reduced from the 10-trial evaluation method of Fujimoto (2018) to reduce experiement time.
+- 5 trials per experiment to capture variance and ensure statistical significance. Reduced from the 10-trial evaluation method of Fujimoto et al., (2018) to reduce experiement time.
 - Standardised performance tracking across both algorithms i.e. mean returns and standard deviation of returns during evaluation.
 
 The harmonisation addresses the fundamental difference between REINFORCE (per-episode updates) and TD3 (per-timestep updates) while respecting each algorithm's requirements.
@@ -190,14 +190,38 @@ The REINFORCE policy network architecture comprises:
   - Bias initialisation to stabilise initial estimates.
   - Gradient clipping (max gradient norm = 5) to prevent exploding gradients.
 
-The actor provides an interface for the training loop to action and update the policy. REINFORCE employs a stochastic gradient method, enabling exploration of the environment. Therefore the outputs are considered as a distribution of the mean for each joint action. When the agent performs a forward pass on the network, the means and standard deviations are converted to a gaussian distribution. The distributions are sampled, which provides the estimated action. From these distributions, the log of the probabilities of each action is summed, a measure of the confidence the agent has in taking all estimated actions (Zhao et al. 2012).
+The actor provides an interface for the training loop to action and update the policy. REINFORCE employs a stochastic gradient method, enabling exploration of the environment. Therefore the outputs are considered as a distribution of the mean for each joint action. When the agent performs a forward pass on the network, the means and standard deviations are converted to a gaussian distribution. The distributions are sampled, which provides the estimated action. From these distributions, the log of the probabilities of each action is summed, a measure of the agent's confidence in taking all estimated actions (Zhao et al. 2012).
 
-In order to provide a positive value to represent the standard deviation, the policy output is exponentiated.
-also mention why exp was used to manage very small and very large values and why this is important
+```Python
+def forward(self, x: torch.Tensor):
+        """Given an observation, this function returns the means and standard deviations of
+        the normal distributions from which the action components are sampled.
+
+        Args:
+            x (torch.Tensor): Observation from the environment
+        Returns:
+            means: Predicted means of the normal distributions
+            stddevs: Predicted standard deviations of the normal distributions
+        """
+        shared_features = self.shared_net(x)
+
+        # ensures outputs are bounded [-1, 1] matching the walker action space
+        means = torch.tanh(self.mean_net(shared_features))
+
+        # similarly to the reward returns, std devs can vary
+        # significantly from 0 to unrealistically high values
+        stddevs = torch.exp(self.log_std_net(shared_features))
+
+        # clamp the log std to a reasonable range.
+        return means, torch.clamp(stddevs, min=1e-6, max=10.0)
+```  
+Figure: REINFORCE - Forward Pass Implementation.
+
+To provide the standard deviations for the agent's gaussian policy - the amount of exploration in the distributions - the model's output is exponentiated. This ensures that the variance is always positive. Additionally, for a high negative output, the exploration is small and for a high positive output, the exporation is large (Zhao et al. 2012, p.119)
 
 #### 3.3.2 TD3 Implementation
 
-The TD3 architecture follows Fujimoto et al. (2018):
+The TD3 architecture follows recommendations from Wan, Korenkevych and Zhu (2025):
 
 - Actor Network: 256-256-128 hidden layers.
 - Twin Critic Networks: 
@@ -207,26 +231,102 @@ The TD3 architecture follows Fujimoto et al. (2018):
 
 **Key Parameters**:
 
-- Learning rate: 3e-4
-- Discount factor (γ): 0.99
-- Replay buffer size: 1,000,000
-- Batch size: 100
-- Actor update delay: 2 critic updates per actor update
-- Target policy noise: σ = 0.2, clipped to ±0.5
+- Learning rate: 3e-4.
+- Discount factor (γ): 0.99.
+- Replay buffer size: 1,000,000 (equivalent to the training steps).
+- Batch size: 100.
+- Actor update delay (d): 2 critic updates per actor update.
+- Target policy noise: σ = 0.2, clipped to ±0.5.
 
-TODO briefly discuss the actor and critics role, with the agent.
+TD3 leverages a Deterministic policy, rather than a stochasitc policy. The agent shall directly map states to actions; taking the same action for a given state. The policy takes action without uncertainty, meaning without a stochastic probability distribution. There are two forms of agent, an actor and a critic (Stapelberg and Malan 2020).
+
+```Python
+target_actions = self.agent.get_target_action(
+                        next_states_tensor)
+
+clipped_noise = torch.clamp(
+    torch.rand_like(
+        target_actions, dtype=torch.float32
+        # see Fujimoto et al. Evaluation.
+    ) * 0.2, -0.5, 0.5
+)
+```  
+Figure: Clipped Gaussian Noise - TD3 Target Action
+
+To aid convergence to a robust policy, gaussian noise is added to the target action, preventing the policy from being overly deterministic, the noise is clipped to keep the target close to the original action (Fujimoto et al, 2018).
+
+```Python
+class CriticPolicy(nn.Module):
+    def __init__(self, obs_dim, action_dim, device='cpu'):
+        super().__init__()
+
+        # define sequential model, without RELU on the output
+        self.policy_net = nn.Sequential(
+            nn.Linear(obs_dim + action_dim, 256),
+            nn.ReLU(),
+            nn.Linear(256, 128),
+            nn.ReLU(),
+            # the output is a Q value (prediction of value)
+            nn.Linear(128, 1)
+        ).to(device)
+```  
+Figure 2: Critic Network Implementation.
+
+The critic learns a quality function from the actor's interactions with the environment i.e state, action, reward, next state. Outputting a quality value based on the actor's predicted action; estimating the return of a given state action pair. Therefore, the critic network is used to update actor to maximise the quality value, guiding the actor's learning of appropriate state-driven actions (Shen 2024).
+
+```Python
+class ActorPolicy(nn.Module):
+    def __init__(self, obs_dim, action_dim, max_action=1.0, device='cpu'):
+        super().__init__()
+
+        self._max_action = torch.Tensor([max_action]).to(device)
+
+        # define sequential model, without RELU on the output
+        self.policy_net = nn.Sequential(
+            nn.Linear(obs_dim, 256),
+            nn.ReLU(),
+            nn.Linear(256, 128),
+            nn.ReLU(),
+            nn.Linear(128, action_dim)
+        ).to(device)
+```  
+Figure 2: TD3 Actor Policy Implementation. 
+
+The role of the Actor therefore, is to estimate actions which achieve the highest quality value, learning an optimal policy. After a delayed period (d), the actor is updated based on the current learned experiences of the critic (Shen 2024).
+
+Target actor and critic networks are initialised as copies of the main actor and critic networks. Guiding the main critics toward optimal action-value functions. Target networks provide training stability by gradually updating towards the parameters of the main actor and critic networks. After a delayed period (d), the target network parameters are updated with a fraction (τ) of the main network parameters. This "soft" update, provides a steady shift of the targets (Shen 2024), analogous to a slow moving target that is easier to reach as the training progresses.
+
+The purpose of the delayed targets and actor network updates is to allow the main critic training time to converge more consistently, before the actor and targets are updated. This further increases training stability and smoothing actor convergence, reducing policy oscillations across the gradients (Shen 2024).
 
 #### 3.3.3 Common Network Attributes
 
-Research supported by, TODO CITE..., note the use of rectified linear unit activation functions between the hidden layers. Since a perceptron acts as a linear regression unit in this case, the activation function provides non-linearity, essential for solving non-linear mappings between states and actions, encountered in complex control problems.
+Research supported by Wan, Korenkevych and Zhu (2025) and Fujimoto et al, 2018, note the use of rectified linear unit activation functions between the hidden layers. Since a perceptron acts as a linear regression unit in this case, the activation function provides efficient non-linearity, essential for solving non-linear mappings between states and actions, encountered in complex control problems. ReLU, is also used in Decision Transformers (Chen et al., 2021), which is discussed in-theory as part of future enhancements in chapter 5.
 
-For the output layers. i.e the mean action values in REINFORCE and the estimated actor actions in TD3, tanh activation is used to limit the outputs within the expected environment bounds.
+For the output layers i.e, the mean action values in REINFORCE and the estimated actor actions in TD3, tanh activation is used to limit the outputs within the expected environment bounds (-1, 1).
+
+```Python
+def update_actor(self, states: torch.Tensor):
+        states = states.to(self._device)
+        actions = self.actor(states)
+        states = states.to(self._device)
+
+        actor_loss = -self.critic1(states, actions).mean()  # maximize Q value
+
+        self.actor_optimizer.zero_grad()
+        actor_loss.backward()
+        total_grad_norm = 0
+
+        self.actor_optimizer.step()
+```  
+Figure: Agent - Backpropagation Update Method (TD3).
+
+Both models are based on gradient descent; the aim of minimising the loss for each subsequent backpropagation during training. The aim of REINFORCE and TD3, is to maximise the policy's cumulative reward and q-value, respectively. Therefore, the backpropagation of these models maximises these values by minimising negative loss values, creating gradient ascent (Zhao et al. 2012).
 
 ### 3.4 Evaluation Methodology
 
 Performance evaluation follows established protocols (Fujimoto et al, 2018):
 1. Evaluation every 5,000 timesteps during training.
-2. 10 evaluation episodes with a deterministic policy (no exploration noise).
+2. 10 evaluation episodes with a deterministic policy (no exploration noise). Representative of how the model is tested in practice 
 3. Mean episode returns and standard deviation across trials collected for learning curve plotting.
 
 ### 3.5 Implementation Architecture
@@ -235,11 +335,15 @@ The project follows object-oriented design principles, illustrated in figure 2:
 
 ![Figure 2: Project class diagram](../out/doc/diagrams/DRL-framework-class/DRL-framework-class.png)
 
+The class diagram demonstrates a composition of dependencies, including:
+
 - Policy classes that encapsulate network architectures and forward passes.
 - Agent classes that manage actioning and policy updates.
 - Trainer classes that control training loops and evaluation.
 - Metrics class to track and aggregate performance data.
 - Plotting class that generates learning curves and comparisons.
+
+Using object composition, the trainer class instantiates the agent class for policy training and metrics for tracking the learning curve data.
 
 This modular design enables extension for future algorithms and experiments.
 
@@ -268,20 +372,67 @@ Figure 5 presents the learning curve following implementing enhancements, includ
 - Increased model complexity (256-256-128 architecture)
 - Xavier initialization for weight initialization
 - Gradient clipping (max norm = 5)
+- intial bias set to zero.
 
 ![Figure 5: Model tuning and intialisation enhancements - REINFORCE](../plots/Reinforce-Learning-Curve_-5-trials.-layers-256_-256-lyr1256_-lyr2256_-lyr31282025-08-08_19_41_43.png)
 
 The enhanced policy learning curve, in figure 5, showed marginal improvements in training stability but negligible performance gains. The learning curves demonstrate that REINFORCE's incremental learning rate remains extremely slow, attributed to:
 
-- High variance in policy gradient estimates TODO CITE
-- On-policy learning limitations requiring new data for each update TODO CITE
-- Difficulty handling the continuous, high-dimensional action space TODO CITE
+High variance in policy estimates. Typical of simplistic REINFORCE models, the stochasticity of the policy means that a random component is added to the gradient estimate at each episode step. Since the true probability distribution of the trajectory is unknown, an "empirical average" is taken:
 
-TODO 
-did the initialisation help much and elaborate on the init? check commit dates to find the right plots
-later, in the dicussion chaper include how the basline in reinfoce could help with variance and stability, potentially achieving stronger results.
+```Python
+loss = torch.tensor(0.0)
+# take the negative because we need gradient ascent
+for gt, log_prob in zip(action_rewards, log_probs):
+    loss += -log_prob * gt
 
-A clear observation, REINFORCE lacks the capacity to converge to a strong walking solution within practical training timeframes, with reward returns insufficient for stable locomotion.
+# to balance the different episode lengths, averange the loss.
+loss = loss.mean()
+
+# determine the gradients
+# reset the gradient to prevent accumulation
+self.optimizer.zero_grad()
+loss.backward()
+```  
+Figure: Reinforce Agent Update Method
+
+Which, sums the log of the probabilities of taking all actions in each step, multiplied by the discounted action rewards of that trajectory (episode). When these noisy gradients from multiple time steps within a trajectory are aggregated, this is the cause of the high variance. Over longer trajectories (training durations), the accumulation of this noise worsens the variance, as seen in figures 3 and 4 (Zhao et al. 2012). 
+
+On-policy learning limitations, requiring new data for each update. REINFORCE has poor sample efficiency due the on-policy approach, collecting the discounted rewards from a single training episode. Prior experiences, are not reused (Bao et al. 2025).
+
+```Python
+# Mean output layer
+self.mean_net = nn.Sequential(
+    nn.Linear(self._final_hidden, action_dim)
+)
+
+# xavier initialisation (weights)
+# this scales the weights so that the variance of the outputs matches the layer size
+nn.init.xavier_uniform_(self.mean_net[-1].weight)
+
+# Log of standard deviation output layer
+self.log_std_net = nn.Sequential(
+    nn.Linear(self._final_hidden, action_dim)
+)
+
+# xavier log std initialisation
+nn.init.xavier_uniform_(self.log_std_net[-1].weight)
+
+# log std final layer initial bias to 0
+self.log_std_net[-1].bias.data.fill_(0.0)
+```  
+Figure: REINFORCE Policy Initialisation.
+
+The REINFORCE policy initialisation did not improve the learning curve results, demonstrated in the continued high variance shown in figures 3 to 5. Bias initialisation attempts to moderate the amount of initial exploration proportional to the layers size, preventing vanishing or exploding gradients (Lunartech 2025). 
+
+```math
+exp(σ) = 1.0 
+```
+Where σ represents the log standard deviation at initialisation, zero (Bajaj Aayush 2025).
+
+In both initialisation cases, where this may have helped to improve the policy's ability to find an initial scale in fewer training iterations, it does not stabilise the ongoing training instability.
+
+A clear observation, the REINFORCE implementation lacks the capacity to converge to a strong walking solution within practical training timeframes, with reward returns insufficient for stable locomotion.
 
 ### 4.3 TD3 Performance
 
@@ -291,6 +442,8 @@ TD3 demonstrated markedly superior performance from initial implementation:
 - Low variance across trials indicating robust learning
 
 #### 4.3.1 Initial Results
+
+Utilising the parameters defined in the study from Wan, Korenkevych and Zhu (2025), showed strong performance for the desired use case.
 
 ![Figure 6: Initial TD3 evaluation - Learning Curve](../plots/TD3-Learning-curve_-Average-over-10-trials2025-08-05_15_20_33.png)
 
@@ -370,8 +523,12 @@ Firstly, the policy is updated regardless of strong or weak environment interact
 
 Secondly, REINFORCE trains on-policy without a value function to critisise the policy's action selections. TD3 utilises an off-policy approach by training a critic network separately to learn the action-value (Q) function. Guiding the actor to update its policy from the critic's learned experience. In this latter form, the actor learns to select actions that aim to maximise the Q-value estimate provided by the critic (Shen 2024).
 
-To address specific failure modes in actor-critic methods, TD3 enhances deterministic policy gradient methods further with twin critics, delayed updates, and target smoothing:
+include how the basline in reinfoce could help with variance and stability, potentially achieving stronger results.
 
+TODO mention the drawback in the discussion
+One of the reasons for large variance of policy gradients in the REINFORCE algorithm is that the empirical average is taken at each time step, which is caused by stochasticity of policies. (TODO cite!)
+
+To address specific failure modes in actor-critic methods, TD3 enhances deterministic policy gradient methods further with twin critics, delayed updates, and target smoothing:
 
 ### 5.2 Theoretical Implications
 
@@ -466,6 +623,8 @@ The extensible framework developed in this project provides a foundation for con
 
 Bao, L., Humphreys, J., Peng, T., & Zhou, C. (2024). Deep Reinforcement Learning for Robotic Bipedal Locomotion: A Brief Survey. *arXiv preprint arXiv:2404.17070v2*.
 
+BAJAJ AAYUSH, 2025. Understanding Gradient Clipping (and How It Can Fix Exploding Gradients Problem). In: Neptune Blog. 8 May Available from: https://neptune.ai/blog/understanding-gradient-clipping-and-how-it-can-fix-exploding-gradients-problem
+
 BARHATE, N., 2022. Minimal Implementation of Decision Transformer. GitHub Repository,
 
 Chen, L., Lu, K., Rajeswaran, A., Lee, K., Grover, A., Laskin, M., Abbeel, P., Srinivas, A., & Mordatch, I. (2021). Decision Transformer: Reinforcement Learning via Sequence Modeling. *Advances in Neural Information Processing Systems*, 34.
@@ -480,9 +639,13 @@ KAMARULARIFFIN, A.B., A.B.M. IBRAHIM and A. BAHAMID, 2023. Improving Deep Reinfo
 
 Lillicrap, T. P., Hunt, J. J., Pritzel, A., Heess, N., Erez, T., Tassa, Y., Silver, D., & Wierstra, D. (2015). Continuous control with deep reinforcement learning. *arXiv preprint arXiv:1509.02971*.
 
+LUNARTECH, 2025. Mastering Xavier Initialization: Enhancing Neural Networks for Optimal Training. In: Lunartech Blog. January 18 Available from: https://www.lunartech.ai/blog/mastering-xavier-initialization-enhancing-neural-networks-for-optimal-training
+
 SHEN, X., 2024. Comparison of DDPG and TD3 Algorithms in a Walker2D Scenario. Atlantis Press International BV, pp.148
 
 STAPELBERG, B. and K.M. MALAN, 2020. A survey of benchmarking frameworks for reinforcement learning. South African Computer Journal, 32(2), 258–292
+
+WAN, Y., D. KORENKEVYCH and Z. ZHU, 2025. An Empirical Study of Deep Reinforcement Learning in Continuing Tasks.
 
 Williams, R. J. (1992). Simple statistical gradient-following algorithms for connectionist reinforcement learning. *Machine Learning*, 8(3-4), 229-256.
 
@@ -616,7 +779,7 @@ Observation: The current state of the environment, following a reset or action.
 
 State: analogous to observation.
 
-### Appendix C: Project Plan
+### Appendix E: Project Plan
 
 The project plan outlines the high level objectives, stratified by per-feature tasks (not shown for conciseness) and managed on a Kanban board.
 
@@ -637,5 +800,8 @@ Incremental milestones were defined over the duration of the project, to ensure 
 - Tune and Enhance the TD3 network to achieve higher performance, aligned to the reserach parameters.
 
 These milestones enabled an incremental approach to development and research, using lessons-learned from prior stages and improvements discovered through continued research.
+
+### Appendix F: Hardware
+TODO - your host machine's hardware specs
 
 ----
