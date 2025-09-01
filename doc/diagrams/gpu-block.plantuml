@@ -15,6 +15,6 @@ CPU --> DRL : Offload Model
 DRL --> GPU : Model
 SIM --> GPU : States, Actions, Rewards
 GPU -up-> DRL: Updates (States, Actions, Rewards)
-GPU -up-> CPU: Inference
+GPU -up-> CPU: Inference (Actions)
 
 @enduml
