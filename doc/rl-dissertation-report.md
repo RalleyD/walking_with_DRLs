@@ -76,7 +76,7 @@ This work makes the following contributions to the field:
 
 The field of bipedal robot locomotion has undergone significant evolution since the 1980s. Traditional model-based approaches spearheaded early research, with methods like the Linear Inverted Pendulum Model (LIPM) providing simplified representations of bipedal dynamics. While these approaches offered rapid convergence and predictive capabilities, they "fell short in dynamically complex environments requiring adaptivity" (Bao et al. 2025).
 
-The emergence of Deep Reinforcement Learning marked a paradigm shift in locomotion control. Unlike model-based approaches that rely on predefined dynamics, DRL enables robots to autonomously discover control strategies through trial and error, allowing for greater adaptability and in complex environments. This transition has been particularly significant for handling the full dynamics of robot-environment interactions (Bao et al. 2025).
+The emergence of Deep Reinforcement Learning marked a paradigm shift in locomotion control. Unlike model-based approaches that rely on predefined dynamics, DRL enables robots to autonomously discover control strategies through trial and error, allowing for greater adaptability and in complex environments. This transition has been particularly significant for handling the full dynamics of robot-environment interactions (Bao et al. 2025). 
 
 The following literature presents the development of reinforcement learning from basic policy gradient algorithms, to deterministic methods, that aim to improve upon the limitations of prior deterministic policies. Further, the research investigated an offline approach. Providing a comprehensive review of methods, highlighting the distinct advantages in robot control.
 
@@ -110,7 +110,11 @@ Research has demonstrated TD3's superior performance across various continuous c
 
 ### 2.5 Emerging Approaches: Transformers in RL
 
-The Decision Transformer, introduced by Chen et al. (2021), represents a paradigm shift in reinforcement learning by framing RL as a "sequence modeling" problem. Rather than learning value functions or policy gradients, Decision Transformer uses a GPT-like architecture to model trajectories autoregressively. Key advantages include:
+According to Bao et al. (2025), the "ultimate goal" is to achieve simulated to real-world transfer of robust models that can handle diverse tasks across different domains, without additional fine-tuning on the target hardware. Providing a "unified framework" capable of "handling locomotion tasks expected from future bipedal robots". This "zero-shot" potential capability, is highlighted in research into trajectory modelling using transformer architecture. 
+
+The Decision Transformer, introduced by Chen et al. (2021), represents a paradigm shift in reinforcement learning by framing RL as a "sequence modeling" problem. Rather than learning value functions or policy gradients, Decision Transformer uses a GPT-2 architecture to model trajectories autoregressively.
+
+Key advantages include:
 
 - Effective learning from fixed datasets without environmental interaction.
 - Target-return driven trajectory training, generating series' of future actions to achieve the target.
@@ -389,7 +393,9 @@ Figure 5 presents the learning curve following implementing enhancements, includ
 
 ![Figure 5: Model tuning and intialisation enhancements - REINFORCE](../plots/Reinforce-Learning-Curve_-5-trials.-layers-256_-256-lyr1256_-lyr2256_-lyr31282025-08-08_19_41_43.png)
 
-The enhanced policy learning curve, in figure 5, presents the acumulated per-episode return and the training trend using a simple moving average. The curve shows comparable training stability with negligible performance gains, compared to figure 4. The learning curves demonstrate that REINFORCE's incremental learning rate remains extremely slow, attributed to:
+The enhanced policy learning curve, in figure 5, presents the acumulated per-episode return and the training trend using a simple moving average. Note that, in this and later plots, the time base (x axis) refers to time steps and not episodes. This is due to the harmonisation of the training loop structure between REINFORCE and TD3. In the time-step domain, one million time steps equates to one thousand episodes. This is an approximation as the episode duration varies in steps with each training iteration.
+
+The curve shows comparable training stability with negligible performance gains, compared to figure 4. The learning curves demonstrate that REINFORCE's incremental learning rate remains extremely slow, attributed to:
 
 High variance in policy estimates. Typical of simplistic REINFORCE models, the stochasticity of the policy means that a random component is added to the gradient estimate at each episode step. Since the true probability distribution of the trajectory is unknown, an "empirical average" is taken:
 
@@ -599,16 +605,30 @@ For practitioners implementing locomotion controllers:
 
 With respect to simple policy gradient methods, during experimentation REINFORCE demonstrated sensitivity to hyperparameters, particularly the learning rate. Which, further required adjustment from the inital to enhanced network structure. This is aligned wwith the findings by Zhao et al. (2012), making the practical implementation nontrivial. TD3 thefore, becomes a more optimal choice for practical deployment as the experimentation time is significantly lower.
 
-TODO
-- performance improvements with GPU optimisation
+```
+CPU:
+2025-Aug-17 14:32:23,190:td3_trainer:train:INFO: Training trial: 0
+2025-Aug-17 14:34:49,032:td3_trainer:train:INFO: Training trial: 1
+2025-Aug-17 14:38:38,449:td3_trainer:train:INFO: Evaluating model - Time step: 1000 - Mean returns: 80.72
 
-The project implements a logging module which captures timestamps across the duration of the training and evaluation runs. By incorporating GPU optimisation the training time of REINFORCE and TD3 was reduced from __ to __ respectively. 
+GPU:
+2025-Aug-17 14:30:06,851:td3_trainer:train:INFO: Training trial: 0
+2025-Aug-17 14:30:55,895:td3_trainer:train:INFO: Training trial: 1
+2025-Aug-17 14:31:50,382:td3_trainer:train:INFO: Evaluating model - Time step: 1000 - Mean returns: 38.27
 
-```Python
+--- Epochs / timesteps ---
+    1000
+--- Trials ---
+    2
 ```  
-Figure: PyTorch GPU Optimisation
+Figure: Log Extract - CPU vs GPU Optimisation
 
-Figure __, outlines the flow of data required for GPU optimisation. Data shall be sent down to RAM at the moment it is required i.e for inference and optimisation, and shall be loaded back to the CPU for other tasks such as data manipulation and passing into the simulation environment.
+The figure above shows an extract of the logging module which captures timestamps across the duration of the training and evaluation runs. Meausred over 1000 time steps, incorporating GPU optimisation reduced the training time by 72.26 %. See annex F for hardware specifications. 
+
+ 
+![Figure: PyTorch GPU Optimisation](../out/doc/diagrams/gpu-block/GPU.png)
+
+Figure __, outlines the flow of data required for GPU optimisation. Data shall be sent down to GPU RAM at the moment it is required, i.e. for inference and optimisation. Data shall be loaded back to the CPU for other tasks such as data manipulation and passing into the simulation environment.
 
 ### 5.4 Future Work: Decision Transformers
 
@@ -654,7 +674,7 @@ Future work should explore:
 
 ## 6. Conclusion
 
-The study provided a comprehensive analysis of the research across multiple deep reinforcement learning algorithms, for the purpose of solving mulitple simulated robot mobility tasks. The study demonstrated a deployable framework with a practical implementation of these methods. Validating the research results and demonstrating that an actor-critic method, while more complex in code, is easier to initialise and tune for desired results.
+The study provided a comprehensive analysis of the research across three deep reinforcement learning algorithms, for the purpose of solving mulitple simulated robot mobility tasks. The study demonstrated a deployable framework with a practical implementation and comparison of REINFORCE and TD3, with a theoretical evaluation of Decision Transformers. Validating the research results and demonstrating that an actor-critic method, while more complex in code, is easier to initialise and tune for desired results. While decision transformers serve as a promising model for future experimentation.
 
 ### 6.1 Summary of Findings
 
@@ -687,15 +707,16 @@ For researchers and practitioners in robotics and reinforcement learning:
 ### 6.5 Limitations and Future Research
 
 While successful, this work has limitations that suggest future research directions:
-- The TD3 performance results are lower than the results from Fujimoto et al. (2018). Implementation improvments should be considered from Raffin Antonin et al (2021) 'Stable Baselines3' repository and further underpin the design rationale.
-  - Lower peak returns of approximately 1800 and higher standard deviations suggesting lower training instability.
+
+- The TD3 performance results are lower than the results from Fujimoto et al. (2018). Implementation improvements should be considered from Raffin Antonin et al (2021) 'Stable Baselines3' repository and further underpin the design rationale.
+  - Lower peak returns of approximately 1800 and higher standard deviations suggests training instability.
 - Gradient management during extended training tasks.
 - Investigation of sim-to-real transfer strategies.
 - Implementation and evaluation of Decision Transformers.
 
 ### 6.6 Final Remarks
 
-The evolution from REINFORCE to TD3 to Decision Transformers exemplifies the progress in deep reinforcement learning for robotics. This research demonstrates that theoretical advances translate to practical improvements. As the field continues to advance, the integration of modern architectures like transformers with domain-specific knowledge promises even more dramatic improvements in the future.
+The evolution from REINFORCE to TD3 to Decision Transformers exemplifies the progress in deep reinforcement learning for robotics. This research demonstrates that theoretical advances translate to practical improvements. As the field continues to advance, the integration of modern architectures like transformers with domain-specific knowledge present dramatic improvements to scalable models. With the potential for real-world applications through faster convergence to robust solutions.
 
 The extensible framework developed in this project provides a foundation for continued research, enabling rapid prototyping and evaluation of new algorithms. As frameworks move toward unified frameworks capable of perception, planning, and control, the lessons learned from this comparative study will inform the practical implementation of advanced locomotion modelling.
 
@@ -847,13 +868,13 @@ https://github.com/RalleyD/walking_with_DRLs
 
 ### Appendix D: Glossary
 
-Agent:
+Agent: A decision-maker that learns to achieve an optimal policy by interacting with its environment (Stapelberg and Malan 2020).
 
-Actor:
+Actor: Refers to the policy network that learns to map states to actions (Shen 2024).
 
-Network:
+Network: A function approximator that learns to estimate complex functions, such as value functions or policies, especially in problems with large state and action space (Stapelberg and Malan 2020).
 
-Policy: "The control strategy of an agent used to make decisions... a mapping from states to actions" (Stapelberg and Malan 2020).
+Policy: "The control strategy of an agent used to make decisions" (Stapelberg and Malan 2020).
 
 Gradient: The rate of change of loss from a predicted action.
 
@@ -885,7 +906,23 @@ Incremental milestones were defined over the duration of the project, to ensure 
 
 These milestones enabled an incremental approach to development and research, using lessons-learned from prior stages and improvements discovered through continued research.
 
-### Appendix F: Hardware
-TODO - your host machine's hardware specs
+### Appendix F: System Hardware and Software
+
+    System Model:	ROG Zephyrus M16 GU603ZX_GU603ZX
+
+    Processor:	12th Gen Intel(R) Core(TM) i9-12900H (2.50 GHz)
+
+    Installed RAM:	32.0 GB (31.7 GB usable)
+
+	NVIDIA GeForce RTX 3080 Ti Laptop GPU
+
+    System type	64-bit operating system, x64-based processor
+
+    Edition	Windows 11 Home
+
+    Version	24H2
+
+    OS build	26100.4946
+
 
 ----
