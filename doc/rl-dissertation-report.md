@@ -256,6 +256,19 @@ Figure: Clipped Gaussian Noise - TD3 Target Action
 To aid convergence to a robust policy, gaussian noise is added to the target action, preventing the policy from being overly deterministic, the noise is clipped to keep the target close to the original action (Fujimoto et al, 2018).
 
 ```Python
+action = self.agent.get_action(obs)
+
+exploration_noise = torch.clamp(torch.randn_like(
+    torch.tensor(action), dtype=torch.float32) * 0.1,
+    -0.5, 0.5).numpy()
+
+action = np.add(action, exploration_noise)
+```  
+Figure: Clipped Gaussian Noise - TD3 Actor Estimate
+
+To encourage exploration, gaussian noise is added to the policy estimation (Wan, Korenkevych and Zhu 2025; Fujimoto, van Hoof and Meger 2018).
+
+```Python
 class CriticPolicy(nn.Module):
     def __init__(self, obs_dim, action_dim, device='cpu'):
         super().__init__()
@@ -363,7 +376,7 @@ Increasing the model complexity and the training duration to 250,000 episodes, i
 
 ![Figure 4: Hyperparameter tuning - REINFORCE - increase model complexity and training duration](../plots/Reinforce-Learning-Curve_-layers-128_-1282025-07-26_03_30_59.png)
 
-In figures 3 and 4, the learning curve exhibited high variance with minimal upward trend, achieving average returns below 300 over extended training. Increasing network capacity to 128 neurons per layer and extending training duration did not yield significant improvements.
+The learning curve plots in figures 3 and 4, present the acumulated returns for each eposide, demonstrating the training variance. Simple moving average is used to show the learning trend. High variance is exhbited with minimal upward trend, achieving average returns below 300 over extended training. Increasing network capacity to 128 neurons per layer and extending training duration did not yield significant improvements.
 
 #### 4.2.2 Enhanced REINFORCE
 
@@ -376,7 +389,7 @@ Figure 5 presents the learning curve following implementing enhancements, includ
 
 ![Figure 5: Model tuning and intialisation enhancements - REINFORCE](../plots/Reinforce-Learning-Curve_-5-trials.-layers-256_-256-lyr1256_-lyr2256_-lyr31282025-08-08_19_41_43.png)
 
-The enhanced policy learning curve, in figure 5, showed marginal improvements in training stability but negligible performance gains. The learning curves demonstrate that REINFORCE's incremental learning rate remains extremely slow, attributed to:
+The enhanced policy learning curve, in figure 5, presents the acumulated per-episode return and the training trend using a simple moving average. The curve shows comparable training stability with negligible performance gains, compared to figure 4. The learning curves demonstrate that REINFORCE's incremental learning rate remains extremely slow, attributed to:
 
 High variance in policy estimates. Typical of simplistic REINFORCE models, the stochasticity of the policy means that a random component is added to the gradient estimate at each episode step. Since the true probability distribution of the trajectory is unknown, an "empirical average" is taken:
 
@@ -437,6 +450,7 @@ A clear observation, the REINFORCE implementation lacks the capacity to converge
 ### 4.3 TD3 Performance
 
 TD3 demonstrated markedly superior performance from initial implementation:
+
 - ~3250 returns score (over 10 trials).
 - Stable walking achieved within 1 million timesteps
 - Low variance across trials indicating robust learning
@@ -447,7 +461,9 @@ Utilising the parameters defined in the study from Wan, Korenkevych and Zhu (202
 
 ![Figure 6: Initial TD3 evaluation - Learning Curve](../plots/TD3-Learning-curve_-Average-over-10-trials2025-08-05_15_20_33.png)
 
-The learning curve illustrated in figure 6 demonstrates that a 256-256-128 network architecture provided sufficient capacity for learning complex locomotion patterns. Yielding a stable solution within one million time steps and a model complexity comparable to the reinforce basline, demonstrates computational efficiency. Approximate returns of ~3250 indicates that the agent has learned robust solution; the simulation environment walks without failing.
+Figure 6 presents the acumulated per-episode reward; demonstrating the training variance. Simple moving average is used to demonstrate the learning trend. The learning curve illustrated in figure 6 demonstrates that a 256-256-128 network architecture provided sufficient capacity for learning complex locomotion patterns. Yielding a stable solution within one million time steps and a model complexity comparable to the reinforce basline, demonstrates computational efficiency. Approximate returns of ~3250 indicates that the agent has learned robust solution; the simulation environment walks without failing.
+
+In contrast to REINFORCE, the relative variance exhibited is similar. However, the policy improved in performance over longer training trajectories.
 
 #### 4.3.2 Research-based Hyperparmeters
 
@@ -455,13 +471,15 @@ The 400-300-300 neuron setup from Fujimoto et al. (2018), did not provide notice
 
 ![Figure 7: Research-based Policy Network, learning rate increased to 0.001](../plots/Reinforce-Vs-TD3-Learning-Curve2025-08-16_04_04_17.png)
 
-The following notable observations can be made:
+The following notable observations, from figures 6 and 7, can be made:
 
-- The twin critic mechanism effectively reduced overestimation bias
-- Delayed actor updates contributed to training stability
-- The higher variance could be a clue to the lower returns achieved by the project's implementation; compared to the research. Reducing the exploration noise could improve the performance. Additionally, addressing the exploding gradients observed over longer training durations may also improve training stability and achieve higher returns. Gradient clipping was not applied in accordance with the research (Fujimoto et al., 2018).
+- The twin critic mechanism effectively reduced overestimation bias.
+- Delayed actor updates contributed to training stability.
+- The higher variance could suggest the lower returns achieved by this project's implementation; compared to the research. Reducing the exploration noise could improve the performance. Additionally, addressing the exploding gradients observed over longer training durations may also improve training stability and achieve higher returns. Gradient clipping was not applied in accordance with the research (Fujimoto et al., 2018).
 
 ### 4.4 Comparative Analysis
+
+The following section compares the learning curve characteristics of both models. Both model implementations are subjected to further simulated training tasks. Where, each model is completely retrained in all environments.
 
 #### 4.4.1 Training Dynamics
 
@@ -513,26 +531,59 @@ Training optimisation should be considered with regards to early stopping when a
 
 The dramatic performance difference between REINFORCE and TD3 validates the hypothesis that modern algorithms provide substantial improvements over basic methods. TD3's success can be attributed to several factors:
 
-- TD3's off-policy learning, reusing past experiences through replay buffers, dramatically improves sample efficiency compared to REINFORCE's on-policy requirement.
+- TD3's off-policy learning, reusing past experiences through replay buffers, dramatically improves sample efficiency compared to REINFORCE's on-policy requirement TODO CITE.
 
-- The critic networks provide more stable learning signals, through value function (Q) approximation, compared to REINFORCE's high-variance Monte Carlo returns.
+- The critic networks provide more stable learning signals, through value function (Q) approximation, compared to REINFORCE's high-variance Monte Carlo returns TODO CITE.
 
-REINFORCE learns directly after each episode, collecting environment rewards and action probabilities from each episode step, creating two scenarios both relating to training instability.
+- REINFORCE learns directly after each episode, collecting environment rewards and action probabilities from each episode step, causing large variance in the estimate of gradient directions.
+
+In the latter case, directly learning a control policy through gradient ascent, creates two scenarios both relating to training instability.
 
 Firstly, the policy is updated regardless of strong or weak environment interactions, leading to training instability (observed in the flucuating returns between each episode, in figures 3 and 4). TD3, in contrast, uses a replay buffer of environment interactions for a pre-determined duration during training. In the event of temporal correlation between successive steps, randomly sampling the replay buffer can prevent large and volatile updates (Fujimoto et al., 2018).
 
 Secondly, REINFORCE trains on-policy without a value function to critisise the policy's action selections. TD3 utilises an off-policy approach by training a critic network separately to learn the action-value (Q) function. Guiding the actor to update its policy from the critic's learned experience. In this latter form, the actor learns to select actions that aim to maximise the Q-value estimate provided by the critic (Shen 2024).
 
-include how the basline in reinfoce could help with variance and stability, potentially achieving stronger results.
+TODO - should this go into the limitations section?
+The stochasticity of REINFORCE inherently has large variance, incresaing over longer training trajectories. To address this, a baseline component can be added to the value function, which should reduce variance, improving convergence.
 
-TODO mention the drawback in the discussion
-One of the reasons for large variance of policy gradients in the REINFORCE algorithm is that the empirical average is taken at each time step, which is caused by stochasticity of policies. (TODO cite!)
+The optimal baseline that minimizes the variance of the gradient estimator is given by:
+
+```math
+
+b = \frac{
+\mathbb{E} \left[ R(h) \left\| \sum_{t=1}^{T} \nabla_\theta \log p(a_t | s_t, \theta) \right\|^2 \right]
+}{
+\mathbb{E} \left[ \left\| \sum_{t=1}^{T} \nabla_\theta \log p(a_t | s_t, \theta) \right\|^2 \right]
+}
+
+
+\\[1em]
+\text{where:} \\
+\quad R(h) \text{ is the expected return; the action-value function of the policy } \\
+\quad \nabla_\theta \log p(a_t | s_t, \theta) \text{ is the gradient of the log-probability of action } a_t \text{ at state } s_t \\
+\quad \sum_{t=1}^{T} \nabla_\theta \log p(a_t | s_t, \theta) \text{ is the total gradient over the trajectory} \\
+\quad \left\| \cdot \right\|^2 \text{ denotes the squared Euclidean norm}
+```
+Figure: Optimial reinforce baseline (Zhao et al. 2012)
+
+As shown in figure _, the baseline projects the return onto the gradient, scaling by the gradient magnitude. Where a baseline term is used, the reward signals are normalised, making the gradient updates more consistent and less erratic. However according to Zhao et al. (2012), the problem can still persist.
 
 To address specific failure modes in actor-critic methods, TD3 enhances deterministic policy gradient methods further with twin critics, delayed updates, and target smoothing:
+
+Overestimation bias, a property of Q-learning, where maximising a noisy actor-value estimate leads to "consistent overestimation" TODO cite fujimoto. A poor value estimate will accumulate critic error, leading to a suboptimal policy. TD3 uses two critics during training, taking the minimum Q-value from the target critics, to update the main critics. This results in more stable learning, reducing bias with more accurate Q-value estimations (Shen 2024).
+
+Overfitting, deterministic policies tend to overfit to narrow peaks in the critic's value estimte, increasing the variance of the target networks. Introducing a small amount of noise to the target policy (smoothing), approximates similar actions to have similar values. Clipping the noise, keeps the target close to the original action (Fujimoto et al., 2018). This encourages exploration, keeping the actor from being too deterministic, enabling the policy to converge to a robust solution (Shen 2024).
+
+Training stability, by updating the actor policy less frequently, this allows the critic to converge more consistently between updates, reducing oscillations during policy updates. Analogous, to a teacher learning from experience, prior to updating the student, minmising the error before performing a policy update (Shen 2024).
+
+TODO mention the drawback in the discussion
+
+A reason for large variance of policy gradients in the REINFORCE algorithm is that the empirical average is taken at each time step, which is caused by stochasticity of policies. (this is originally in the results chapter to aid discussion on the learning curve plots, should it be moved here? TODO)
 
 ### 5.2 Theoretical Implications
 
 The results align with theoretical understanding:
+
 - REINFORCE's convergence requires sufficient exploration and small learning rates, impractical for complex continuous control.
 - TD3's bias-variance tradeoff favors lower variance at the cost of some bias, more suitable for practical applications.
 - The results support the importance of addressing overestimation bias in value-based methods.
@@ -540,18 +591,41 @@ The results align with theoretical understanding:
 ### 5.3 Practical Considerations
 
 For practitioners implementing locomotion controllers:
+
 1. TD3 or similar modern algorithms should be preferred over basic policy gradients for continuous control.
 2. A network architecture of 256-256-128 neurons, provides good balance between capacity and efficiency.
 3. Allow at least 200k timesteps for initial convergence, 1M for robust policies.
 4. Learning rate and gradient clamping significantly impact performance.
 
+With respect to simple policy gradient methods, during experimentation REINFORCE demonstrated sensitivity to hyperparameters, particularly the learning rate. Which, further required adjustment from the inital to enhanced network structure. This is aligned wwith the findings by Zhao et al. (2012), making the practical implementation nontrivial. TD3 thefore, becomes a more optimal choice for practical deployment as the experimentation time is significantly lower.
+
+TODO
+- performance improvements with GPU optimisation
+
+The project implements a logging module which captures timestamps across the duration of the training and evaluation runs. By incorporating GPU optimisation the training time of REINFORCE and TD3 was reduced from __ to __ respectively. 
+
+```Python
+```  
+Figure: PyTorch GPU Optimisation
+
+Figure __, outlines the flow of data required for GPU optimisation. Data shall be sent down to RAM at the moment it is required i.e for inference and optimisation, and shall be loaded back to the CPU for other tasks such as data manipulation and passing into the simulation environment.
+
 ### 5.4 Future Work: Decision Transformers
+
+The REINFORCE and TD3 models experimented, use policy gradient updates and quality value functions respectively. Decision transformers directly estimate the future actions. This requires a different model architecture, feeding past states, actions and rewards into an embedding encoder and modelling future actions autoregressively to achieve the desired reward outcome, which has proven effective at modelling long sequences of data. Adopting a model-free, offline approach to learning continuous locomotion tasks.
+
+To achieve this, a decision transformer models the joint distribution of the sequence of states, actions and rewards. The decision transformer leverages a GPT-2 model, taking the tokenised historical data to perform the autoregressive modelling.
+
+The offline approach provides the benefit of learning from either other agents or real-world data. Where tasks can be solved without requiring the complexity of implementing simulations.
+
+The research suggests that decision transformers can scale better than deep reinforcment learning models, generalising to tasks faster and with higher robustness.
 
 The learning curve results in figure 10, present further potential benefits by using Decision Transformers for reinforcement learning:
 
 ![Figure 10: Decision Transformer - Learning Curve](../plots/dt-learning-curve-walker2d.png)
 
 Evaluation data in figure 10, obtained from Barhate (2022), shows:
+
 - Comparable performance to TD3 (behavioral scores).
 - 50× faster convergence (20,000 vs 1,000,000 timesteps).
 - Better long-term credit assignment through attention mechanisms.
@@ -561,6 +635,14 @@ This dramatic efficiency improvement occurs, according to Chen et al., (2021) be
 1. Transformers leverage patterns in trajectory data more effectively.
 2. No need for environmental interaction during training. This shall also provide time saving benefits.
 3. Direct credit assignment without value function approximation. Meaning, when a sequence of temporal states, actions and rewards, are used to determine at which point in time the current reward was met. This the principle difference compared to policy gradient models; directly learning the reward trajectory, rather than a value function.
+
+The tradeoff is a higher implementation complexity, compared to TD3, requiring (Beeching and Simonini 2022):
+
+- Extracting and, in some cases preprocessing, the dataset.
+- Parsing the data for evaluating the model.
+- Extending the decision transformer class to include a loss function.
+
+The benefit is that decision transformers can scale effectively. By leveraging GPT-2 (transformer), matured and stabilised through its use in various high-dimensional domains, it can generalise to multiple tasks with its ability to model long-term dependencies, avoiding the need to discount future reweards leading to near-sighted behaviour (Chen et al. 2021).
 
 ### 5.5 Future Work
 
@@ -626,6 +708,8 @@ Bao, L., Humphreys, J., Peng, T., & Zhou, C. (2024). Deep Reinforcement Learning
 BAJAJ AAYUSH, 2025. Understanding Gradient Clipping (and How It Can Fix Exploding Gradients Problem). In: Neptune Blog. 8 May Available from: https://neptune.ai/blog/understanding-gradient-clipping-and-how-it-can-fix-exploding-gradients-problem
 
 BARHATE, N., 2022. Minimal Implementation of Decision Transformer. GitHub Repository,
+
+BEECHING, E. and T. SIMONINI, 2022. Train your first Decision Transformer. In: Hugging Face. 8 September Available from: https://huggingface.co/blog/train-decision-transformers
 
 Chen, L., Lu, K., Rajeswaran, A., Lee, K., Grover, A., Laskin, M., Abbeel, P., Srinivas, A., & Mordatch, I. (2021). Decision Transformer: Reinforcement Learning via Sequence Modeling. *Advances in Neural Information Processing Systems*, 34.
 
