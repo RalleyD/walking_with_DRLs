@@ -198,26 +198,35 @@ The actor provides an interface for the training loop to action and update the p
 
 ```Python
 def forward(self, x: torch.Tensor):
-        """Given an observation, this function returns the means and standard deviations of
-        the normal distributions from which the action components are sampled.
+    """Given an observation, this function returns the means and standard deviations of
+    the normal distributions from which the action components are sampled.
 
-        Args:
-            x (torch.Tensor): Observation from the environment
-        Returns:
-            means: Predicted means of the normal distributions
-            stddevs: Predicted standard deviations of the normal distributions
-        """
-        shared_features = self.shared_net(x)
+    Args:
+        x (torch.Tensor): Observation from the environment
+    Returns:
+        means: Predicted means of the normal distributions
+        stddevs: Predicted standard deviations of the normal distributions
+    """
+    shared_features = self.shared_net(x)
 
-        # ensures outputs are bounded [-1, 1] matching the walker action space
-        means = torch.tanh(self.mean_net(shared_features))
+    # squashing the means with tanh to ensure they are in the range [-1, 1]
+    means = torch.tanh(self.mean_net(shared_features))
 
-        # similarly to the reward returns, std devs can vary
-        # significantly from 0 to unrealistically high values
-        stddevs = torch.exp(self.log_std_net(shared_features))
+    # if the log_std_net produces very negative values
+    # then sigma, exp(log_std) becomes very small.
+    # as a result the numerical stability drops and the log probs will lead to
+    # unstable gradients
+    # automatically clamp exp values prior to performing exp
+    # thereby preventing extreme log values before the exp calculation
+    stddevs = torch.clamp(
+        self.log_std_net(shared_features),
+        min=1e-6,  # Don't go negative
+        max=10,   # experiment to find a good value. Relates to exploding gradients.
+    )
+    
+    stddevs = torch.exp(stddevs)
 
-        # clamp the log std to a reasonable range.
-        return means, torch.clamp(stddevs, min=1e-6, max=10.0)
+    return means, stddevs   
 ```  
 Figure: REINFORCE - Forward Pass Implementation.
 
