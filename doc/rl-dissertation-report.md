@@ -108,11 +108,13 @@ Fujimoto et al. (2018) introduced TD3 as an advancement of DDPG, specifically ad
 
 Research has demonstrated TD3's superior performance across various continuous control benchmarks. In Walker2d environments, TD3 achieves average returns of 4682.82 ± 539.64 compared to DDPG's 3098.11 (Fujimoto et al., 2018), representing a significant improvement in both performance and stability.
 
+Current research focuses on single-task optimisation i.e A singular aspect of walking, or balancing. Rather than developing unified controllers capable of seamless transitions between locomotion modes. As noted by Bao et al. (2025), the "ultimate goal" of achieving a unified framework capable of "handling locomotion tasks expected from future bipedal robots" remains unmet. Existing approaches require task-specific training and manual gait switching, limiting their practical applicability in dynamic real-world scenarios where robots must adaptively select appropriate locomotion strategies. 
+
 ### 2.5 Emerging Approaches: Transformers in RL
 
-According to Bao et al. (2025), the "ultimate goal" is to achieve simulated to real-world transfer of robust models that can handle diverse tasks across different domains, without additional fine-tuning on the target hardware. Providing a "unified framework" capable of "handling locomotion tasks expected from future bipedal robots". This "zero-shot" potential capability, is highlighted in research into trajectory modelling using transformer architecture. 
+According to Bao et al. (2025), the "ultimate goal" is to achieve simulated to real-world transfer of robust models that can handle diverse tasks across different domains, without additional fine-tuning on the target hardware. Providing a "unified framework" capable of "handling locomotion tasks expected from future bipedal robots". This "zero-shot" potential capability, is highlighted in research into trajectory modelling using transformer architecture.
 
-The Decision Transformer, introduced by Chen et al. (2021), represents a paradigm shift in reinforcement learning by framing RL as a "sequence modeling" problem. Rather than learning value functions or policy gradients, Decision Transformer uses a GPT-2 architecture to model trajectories autoregressively.
+The Decision Transformer, introduced by Chen et al. (2021), represents a paradigm shift in reinforcement learning by framing RL as a "sequence modeling" problem. Rather than learning value functions or policy gradients, Decision Transformer uses a GPT-2 architecture to model trajectories autoregressively. While "zero-shot" generalisation is not explicitly achieved, decision transformers leverage an architecture that claims transfer with highly efficient convergence to robust solutions.
 
 Key advantages include:
 
@@ -125,6 +127,22 @@ This approach demonstrates the potential for leveraging advances in natural lang
 ### 2.6 Simulation Environments and Benchmarks
 
 The MuJoCo physics engine has become a standard for continuous control benchmarks in reinforcement learning research (Fujimoto et al., 2018; Chen et al., 2021). The Walker2d-v4 environment in particular, provides a challenging testbed for bipedal locomotion algorithms, requiring coordination of multiple joints while maintaining balance and forward progress.
+
+Bao et al. (2025) and Zhu et al. (2025), reinforce the widespread use of MuJoCo as a reliable means to train and evaluate reinforcement learning models; a comprehensive physics engine supporing robotics research and development. "Using full-order dynamics, which better represent the complex interactions robots face in the real world." (Bao et al. 2025).
+
+### 2.7 Algorithmic Challenges
+
+The fundamental challenges in value-based reinforcement learning stem from what Chen et al. (2021) has referenced, the "deadly triad" - the combination of function approximation, bootstrapping, and off-policy learning that can lead to divergent behavior. In actor-critic methods, function approximation errors compound through temporal difference learning, where "an estimate of the value function is updated using the estimate of a subsequent state," leading to an accumulation of error that can cause "arbitrarily bad states to be estimated as high value" (Fujimoto et al., 2018). This identifies the nature of boostrapping, learning directly from immediate experience (Stapelberg and Malan 2020) and directly contributes to overestimation bias.
+
+Overestimation bias, "suboptimal actions might be highly-rated by the suboptimal critic, reinforcing the suboptimal action", caused by noisy values which is inherent due to innacuracies of the estimators; where learning critics actively feedback on the value of the learning actors' actions. Fujimoto et al. (2018), demonstrates that these issues persist in continuous control, showing that even initially zero-mean errors can propagate through the Bellman equation to create consistent overestimation bias, with their experiments (shown in their figure, 1b) revealing value overestimations exceeding 400 units in Walker2d environments.
+
+Off-policy learning provides the potential to scale to more complex tasks by utilising exploration strategies, crtitic and target networks. However, this introduces training instability challenges related to high variance and slow convergence (Stapelberg and Malan 2020). Caused, but not limited to, target networks that remain too similar to the slow-changing policy, yielding little model improvement. If the policy estimates exhibit high variance, this contributes to unstable learning (Fujimoto et al. 2018).
+
+These challenges results in the actor and critic in a feedback cycle where overestimation ocurrs due to a poor policy, affecting poor critic value estimates, leading to inaccruate target networks (Fujimoto et al. 2018).
+
+### 2.8 Simulation to Real World Transfer
+
+Despite the widespread use and fidelity advancements to simulation environments, such as MuJoCo, Bao et al. (2025) note that "a significant gap persists, exacerbated by the complexity and unpredictability of physical environments," with most methods still requiring real-world fine-tuning rather than achieving the ideal of zero-shot transfer where policies trained purely in simulation can be deployed without modification.
 
 ## 3. Methodology
 
@@ -170,6 +188,26 @@ To enable direct comparison between REINFORCE and TD3, a unified training framew
 - Standardised performance tracking across both algorithms i.e. mean returns and standard deviation of returns during evaluation.
 
 The harmonisation addresses the fundamental difference between REINFORCE (per-episode updates) and TD3 (per-timestep updates) while respecting each algorithm's requirements.
+
+```Python
+def train(self):
+    """
+    Run the training loop
+    """
+
+    # ...
+
+    for trial in range(self._n_trials):
+        np.random.seed(trial)
+        torch.manual_seed(trial)
+        # start a new episode
+        logger.info("Training trial: %d" % trial)
+        done = False
+        obs, _ = self._env.reset(seed=trial)
+```  
+Figure: Training Loop Reproducibility.
+
+Figure _, demonstrates that in order to reproduce the training of both models, the environment state, environment versions and network shall be seeded to provide consistent and repeatable training randomisation. If single or multiple trials are run, the final result (averaged if multiple trials are used), results across separate training runs shall be comparable.
 
 ### 3.3 Algorithm Implementations
 
@@ -639,6 +677,16 @@ The figure above shows an extract of the logging module which captures timestamp
 
 Figure __, outlines the flow of data required for GPU optimisation. Data shall be sent down to GPU RAM at the moment it is required, i.e. for inference and optimisation. Data shall be loaded back to the CPU for other tasks such as data manipulation and passing into the simulation environment.
 
+```
+2025-Aug-22 10:38:56,171:td3_trainer:train:INFO: Training trial: 3
+2025-Aug-22 10:39:01,471:td3_trainer:train:INFO: Evaluating model - Time step: 5000 - Mean returns: 5503.41
+
+2025-Aug-22 13:09:29,056:td3_trainer:train:INFO: Evaluating model - Time step: 1000000 - Mean returns: 5514.83
+```  
+Figure: Per-trial Training Duration - Log Extract.
+
+The training duration for TD3 is considerably long. During the training phases of the project, each trial took approximately two hours and thirty minutes, with GPU optimisation. In order to close the gap between research methods and deployable models, the training time should be drastically reduced while achieving a robust policy.
+
 ### 5.4 Future Work: Decision Transformers
 
 The REINFORCE and TD3 models experimented, use policy gradient updates and quality value functions respectively. Decision transformers directly estimate the future actions. This requires a different model architecture, feeding past states, actions and rewards into an embedding encoder and modelling future actions autoregressively to achieve the desired reward outcome, which has proven effective at modelling long sequences of data. Adopting a model-free, offline approach to learning continuous locomotion tasks.
@@ -670,6 +718,24 @@ The tradeoff is a higher implementation complexity, compared to TD3, requiring (
 - Extracting and, in some cases preprocessing, the dataset.
 - Parsing the data for evaluating the model.
 - Extending the decision transformer class to include a loss function.
+
+#### 5.4.1 Data Quality and Preprocessing Requirements
+
+Training machine learning models typically requires quality datasets, containing accurate and diverse data over a significant number of observations. In traditional reinforcement learning training, value overestimation and error propagation are inherent challenges. The challenge of model-free reinforcement learning is that the datasets are generated from other agents, which may be suboptimal for the task. A task that is continuous, is unlikely to have data representing all states for all actions.
+
+For continuous control tasks, including locomotion environments like HalfCheetah, Hopper, and Walker, datasets include (CITE main source):
+
+- "Medium: 1 million timesteps from a policy achieving roughly one-third of an expert's score."
+- "Medium-Replay: Replay buffer data from an agent trained to a medium policy's performance (25k-400k timesteps)."
+- "Medium-Expert: 1 million timesteps from a medium policy concatenated with 1 million timesteps from an expert policy."
+
+Decision trasnformers achieve policy maximisation by leveraging all trajectories in the dataset to improve generalisation, even if dissimilar from the target. This requires preprocessing, starting with batches of normalised data sequences.
+
+- Trajectory representation, feeding the sum of subsequent rewards from an initial timestep, allows the model to generate actions based on future desired rewards.
+- Trajectories, corresponding states and actions are tokenised using an embedding layer with a time step embedding added to each token. This 
+- Padding all tokens to sequence length, due to training by batches of sequences.
+
+This allows GPT-2 to model trajectories autogressively and enable prompting, where the tokenisation allows a return target to be defined by the user.
 
 The benefit is that decision transformers can scale effectively. By leveraging GPT-2 (transformer), matured and stabilised through its use in various high-dimensional domains, it can generalise to multiple tasks with its ability to model long-term dependencies, avoiding the need to discount future reweards leading to near-sighted behaviour (Chen et al. 2021).
 
