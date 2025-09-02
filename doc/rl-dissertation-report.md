@@ -706,6 +706,7 @@ Evaluation data in figure 10, obtained from Barhate (2022), shows:
 - Comparable performance to TD3 (behavioral scores).
 - 50× faster convergence (20,000 vs 1,000,000 timesteps).
 - Better long-term credit assignment through attention mechanisms.
+- The implementation follows the same network structure and hyperparmeters as recommended by Chen et al. (2021), by default.
 
 This dramatic efficiency improvement occurs, according to Chen et al., (2021) because:
 
@@ -737,7 +738,28 @@ Decision trasnformers achieve policy maximisation by leveraging all trajectories
 
 This allows GPT-2 to model trajectories autogressively and enable prompting, where the tokenisation allows a return target to be defined by the user.
 
+#### 5.4.2 Model Configuration
+
+The model configuration recommended by Chen et al. (2021), is as follows:
+
+- 3 network layers
+- 1 attention head layer
+- 128 embedding dimension
+- ReLU activation
+- Dropout layer rate: 0.1
+
+Including, the following hyperparameters:
+
+- Batch size: 64
+- Sequence length: 20
+- Learning rate: 1e-4
+- Gradient norm clipping: 0.25
+- Weight decay: 1e-4
+- Model warmup for first 10e5 time steps i.e No learning rate decay. 
+
 The benefit is that decision transformers can scale effectively. By leveraging GPT-2 (transformer), matured and stabilised through its use in various high-dimensional domains, it can generalise to multiple tasks with its ability to model long-term dependencies, avoiding the need to discount future reweards leading to near-sighted behaviour (Chen et al. 2021).
+
+TODO computational requirements.
 
 ### 5.5 Future Work
 
