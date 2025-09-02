@@ -707,6 +707,7 @@ Evaluation data in figure 10, obtained from Barhate (2022), shows:
 - 50× faster convergence (20,000 vs 1,000,000 timesteps).
 - Better long-term credit assignment through attention mechanisms.
 - The implementation follows the same network structure and hyperparmeters as recommended by Chen et al. (2021), by default.
+- According to Barhate (2022), the variance should reduce as the training reaches saturation over longer training periods.
 
 This dramatic efficiency improvement occurs, according to Chen et al., (2021) because:
 
@@ -719,6 +720,8 @@ The tradeoff is a higher implementation complexity, compared to TD3, requiring (
 - Extracting and, in some cases preprocessing, the dataset.
 - Parsing the data for evaluating the model.
 - Extending the decision transformer class to include a loss function.
+
+The benefit is that decision transformers can scale effectively. By leveraging GPT-2 (transformer), matured and stabilised through its use in various high-dimensional domains, it can generalise to multiple tasks with its ability to model long-term dependencies, avoiding the need to discount future rewards, leading to near-sighted behaviour (Chen et al. 2021).
 
 #### 5.4.1 Data Quality and Preprocessing Requirements
 
@@ -755,17 +758,19 @@ Including, the following hyperparameters:
 - Learning rate: 1e-4
 - Gradient norm clipping: 0.25
 - Weight decay: 1e-4
-- Model warmup for first 10e5 time steps i.e No learning rate decay. 
+- Model warmup for first (0.1 * time steps) steps i.e No learning rate decay.
+- Training steps: 25e3 to 1e6, depending on the dataset used.
 
-The benefit is that decision transformers can scale effectively. By leveraging GPT-2 (transformer), matured and stabilised through its use in various high-dimensional domains, it can generalise to multiple tasks with its ability to model long-term dependencies, avoiding the need to discount future reweards leading to near-sighted behaviour (Chen et al. 2021).
+The additional embedding layers, decaying learning rate and larger model size contribute to the higher relative complexity than that of TD3. The larger model helps to model the distribution of returns (Chen et al. 2021).
 
-TODO computational requirements.
+#### 5.4.3 Computational Requirements
+
+As a result of the higher model complexity, the full training duration from Chen et al. (2021), according to Beeching and Simonini (2022), takes around three hours. With the shorter training duration taking approximately 40 minutes.
 
 ### 5.5 Future Work
 
 Future work should explore:
 - Implementation of Decision Transformer for Walker2d.
-- Transfer learning across different locomotion tasks.
 - Deployment strategies for real robotic systems.
 - Decision Transformer architecture for future deployment.
 
