@@ -1088,4 +1088,36 @@ These milestones enabled an incremental approach to development and research, us
     OS build	26100.4946
 
 
+### Appendix G: Academic Ethics Approval
+
+![Figure: Ethics Approval Letter](ethics-approval.png)
+
+### Appendix H: Python Libraries Used in TD3 Trainer Module
+
+```python
+import torch
+import torch.nn as nn
+import gymnasium as gym
+import numpy as np
+# speed profiling
+import time
+from src.TD3.actor_critic_agent import ActorCriticAgent, ReplayBuffer
+from src.evaluate.performance_metrics import PerformanceMetrics
+from src.util.plotter import record_gif
+from src.custom_logger import CustomLogger
+```
+
+### Appendix I: Python Libaries Used in Learning Curve & Simulation Visualisation
+
+```python
+import matplotlib.pyplot as plt
+import seaborn as sns
+import numpy as np
+from typing import Optional
+from pathlib import Path
+from moviepy import ImageSequenceClip
+from datetime import datetime
+from src.evaluate.performance_metrics import PerformanceMetrics
+from src.custom_logger import CustomLogger
+```
 ----
