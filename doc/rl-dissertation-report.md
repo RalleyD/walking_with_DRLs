@@ -374,7 +374,7 @@ def update_actor(self, states: torch.Tensor):
         actions = self.actor(states)
         states = states.to(self._device)
 
-        actor_loss = -self.critic1(states, actions).mean()  # maximize Q value
+        actor_loss = -self.critic1(states, actions).mean()  # maximise Q value
 
         self.actor_optimizer.zero_grad()
         actor_loss.backward()
@@ -434,7 +434,7 @@ The learning curve plots in figures 3 and 4, present the acumulated returns for 
 Figure 5 presents the learning curve following implementing enhancements, including:
 
 - Increased model complexity (256-256-128 architecture)
-- Xavier initialization for weight initialization
+- Xavier initialisation for weight initialisation
 - Gradient clipping (max norm = 5)
 - intial bias set to zero.
 
@@ -584,11 +584,11 @@ Training optimisation should be considered with regards to early stopping when a
 
 The dramatic performance difference between REINFORCE and TD3 validates the hypothesis that modern algorithms provide substantial improvements over basic methods. TD3's success can be attributed to several factors:
 
-- TD3's off-policy learning, reusing past experiences through replay buffers, dramatically improves sample efficiency compared to REINFORCE's on-policy requirement TODO CITE.
+- TD3's off-policy learning, reusing past experiences through replay buffers, dramatically improves sample efficiency compared to REINFORCE's on-policy requirement (Bao et al. 2025).
 
-- The critic networks provide more stable learning signals, through value function (Q) approximation, compared to REINFORCE's high-variance Monte Carlo returns TODO CITE.
+- The critic networks provide more stable learning signals, through value function (Q) approximation (Shen 2024, p.151), compared to REINFORCE's high-variance Monte Carlo returns.
 
-- REINFORCE learns directly after each episode, collecting environment rewards and action probabilities from each episode step, causing large variance in the estimate of gradient directions.
+- REINFORCE learns directly after each episode, collecting environment rewards and action probabilities from each episode step, causing large variance in the estimate of gradient directions (Kargar 2019).
 
 In the latter case, directly learning a control policy through gradient ascent, creates two scenarios both relating to training instability.
 
@@ -598,7 +598,7 @@ Secondly, REINFORCE trains on-policy without a value function to critisise the p
 
 The stochasticity of REINFORCE inherently has large variance, incresaing over longer training trajectories. To address this, a baseline component can be added to the value function, which should reduce variance, improving convergence.
 
-The optimal baseline that minimizes the variance of the gradient estimator is given by:
+The optimal baseline that minimises the variance of the gradient estimator is given by:
 
 ```math
 
@@ -622,7 +622,7 @@ As shown in figure _, the baseline projects the return onto the gradient, scalin
 
 To address specific failure modes in actor-critic methods, TD3 enhances deterministic policy gradient methods further with twin critics, delayed updates, and target smoothing:
 
-Overestimation bias, a property of Q-learning, where maximising a noisy actor-value estimate leads to "consistent overestimation" TODO cite fujimoto. A poor value estimate will accumulate critic error, leading to a suboptimal policy. TD3 uses two critics during training, taking the minimum Q-value from the target critics, to update the main critics. This results in more stable learning, reducing bias with more accurate Q-value estimations (Shen 2024).
+Overestimation bias, a property of Q-learning, where maximising a noisy actor-value estimate leads to "consistent overestimation" (Fujimoto et al., 2018). A poor value estimate will accumulate critic error, leading to a suboptimal policy. TD3 uses two critics during training, taking the minimum Q-value from the target critics, to update the main critics. This results in more stable learning, reducing bias with more accurate Q-value estimations (Shen 2024).
 
 Overfitting, deterministic policies tend to overfit to narrow peaks in the critic's value estimte, increasing the variance of the target networks. Introducing a small amount of noise to the target policy (smoothing), approximates similar actions to have similar values. Clipping the noise, keeps the target close to the original action (Fujimoto et al., 2018). This encourages exploration, keeping the actor from being too deterministic, enabling the policy to converge to a robust solution (Shen 2024).
 
@@ -756,7 +756,7 @@ Training machine learning models typically requires quality datasets, containing
 
 Similar to having a high fidelity simulation environment, data from unknown sources or poorly trained agents can generate destructive biases, as the transformer model is "conditioned on desired returns" (Chen et al. 2021).
 
-For continuous control tasks, including locomotion environments like HalfCheetah, Hopper, and Walker, datasets include (CITE main source):
+For continuous control tasks, including locomotion environments like HalfCheetah, Hopper, and Walker, datasets include (Chen et al. 2021):
 
 - "Medium: 1 million timesteps from a policy achieving roughly one-third of an expert's score."
 - "Medium-Replay: Replay buffer data from an agent trained to a medium policy's performance (25k-400k timesteps)."
@@ -816,31 +816,50 @@ The study provided a comprehensive analysis of the research across three deep re
 
 ### 6.1 Summary of Findings
 
-This research successfully demonstrated that modern deep reinforcement learning algorithms achieve significant, quantifiable improvements over basic approaches in simulated robot locomotion. The comparative study between REINFORCE and TD3 revealed:
+This research successfully demonstrated that modern deep reinforcement learning algorithms achieve significant, quantifiable improvements over basic approaches in simulated robot locomotion. The comparative study between REINFORCE, TD3 and Decision Transformers, revealed:
 
 1. TD3 achieved 10 to 15 times higher returns than enhanced REINFORCE.
-2. TD3 converged to stable walking within 200,000 timesteps while REINFORCE failed to achieve locomotion.
+2. TD3 converged to stable walking within 200,000 timesteps, across various MuJoCo environments, including Walker2D, HalfCheetah and Inverted Pendulum, while REINFORCE failed to achieve locomotion; demonstrating minimal upward trend in returns after extended training.
 3. TD3 exhibited lower variance and more consistent performance across trials.
 4. Only TD3 produced policies suitable for deployment.
+5. Decision transformers showed 50 times faster convergence, with higher potential returns over longer trajectories, than TD3.
+
+TD3 exhibited significantly more consistent performance across multiple trials, indicating a robust and reliable learning process. For example, in the Walker2D-v4 environment, TD3 achieved mean returns of ~2800 with a standard deviation of ~600, while REINFORCE managed only ~300 mean returns with a standard deviation of ~100.
+
+While demonstrating behavioral scores comparable to TD3, Decision Transformers demonstrated 50 times faster convergence rate, achieving stable solutions in as few as 20,000 timesteps compared to TD3's 1,000,000 timesteps. Decision Transformers proved to be robust in scenarios requiring long-term credit assignment and in sparse or delayed reward settings, tasks where traditional TD-learning algorithms often struggle (Chen et al. 2021). Long term credit assignment refers to how credit for a result should be distributed amongst the sequence of actions and states that led to a given result. This problem is characterised in delayed reward settings (indicative of TD3), where an agent receives a reward further into the future. Bootstrapping (updating estimates with other estimates) and discounting future rewards, prioritising short-term rewards over long term gains (Chen et al. 2021, p.3). By using sequence modelling, Decision Transformers don't bootstrap for long-term credit assignment. Instead, directly assigning credit using self-attention, linking past events to future outcomes (Chen et al. 2021).
 
 ### 6.2 Contributions to Knowledge
 
 The project makes several contributions:
+
 - Quantified performance improvements achievable through algorithmic advances.
 - Developed an extensible, object-oriented pipeline for DRL research.
 - Developed an A/B evaluation framework, harmonising policies with differing training requirements.
 - Identified Decision Transformers as promising next generation approach.
 
+The study provided further empirical evidence of REINFORCE's inherent limitations, specifically its high variance in gradient estimates due to its Monte Carlo nature and poor sample efficiency stemming from its on-policy learning approach. These factors contribute to its slow and unstable convergence in complex continuous action space.
+
+The work practically showcased how TD3's theoretical advancements—namely, its twin critic networks, delayed policy updates, and target policy smoothing—effectively address the persistent problems of overestimation bias and training instability inherent in actor-critic methods. This provides strong empirical grounding for these critical architectural and procedural enhancements.
+
+The research emphasised Decision Transformer's novel approach of casting Reinforcement Learning as a conditional sequence modeling problem. This represents a fundamental departure from traditional DRL paradigms that rely on value functions or policy gradients. Decision Transformers instead leverage autoregressive modeling to generate actions conditioned on desired returns, effectively performing direct long-term credit assignment via self-attention. This offers a new perspective on solving RL problems, drawing on the scalability and generalisation capabilities of transformer architectures.
+
 ### 6.3 Answering the Research Question
 
-The practical implementation of modern reinforcement learning research achieves simulated robot locomotion with both quantifiable and perceivable improvements over basic approaches. The improvements are not marginal but transformative, enabling successful locomotion where basic methods fail entirely. The research into understanding why the basic gradient policy method failed discovered potential improvements that could be explored for more basic locomation tasks.
+The practical implementation of modern reinforcement learning research achieves simulated robot locomotion with both quantifiable and perceivable improvements over basic approaches. The improvements are not marginal but transformative, enabling successful locomotion where basic methods fail entirely. The research into understanding why the basic gradient policy method failed, discovered potential improvements that could be explored for more basic locomation tasks, in the form of a baseline component to reduce training instability. However, the tradeoff of marginal implementation complexity over minimal tuning, favours the adoption of TD3. This validation confirms the critical role of modern algorithmic innovations in overcoming the inherent challenges of complex continuous control tasks in robotics
 
 ### 6.4 Implications for Practice
 
 For researchers and practitioners in robotics and reinforcement learning:
+
 - Investment in modern algorithms yields substantial returns in performance.
 - The additional implementation complexity of TD3 over REINFORCE is justified by results.
 - Future systems should consider transformer-based approaches for further efficiency and potential performance gains.
+
+Experimentation shows TD3, a hidden layer architecture of 256-256-128 neurons, utilising ReLU activation functions between hidden layers and Tanh activation for output layers, provides an effective balance of learning capacity and computational efficiency. Learning rate and gradient clamping are critical for performance. TD3 benefits from actor and critic learning rates around 3e-4.
+
+Aim for at least 200,000 timesteps for initial convergence and 1 million timesteps for developing robust and deployable policies.
+
+Implement gradient clipping (e.g., a maximum norm of 5 for TD3) to mitigate exploding gradients, particularly during extended training, which was observed as gradient magnitudes increasing significantly in later stages.
 
 ### 6.5 Limitations and Future Research
 
@@ -877,6 +896,8 @@ Fujimoto, S., Hoof, H., & Meger, D. (2018). Addressing Function Approximation Er
 Glorot, X., & Bengio, Y. (2010). Understanding the difficulty of training deep feedforward neural networks. *Proceedings of the Thirteenth International Conference on Artificial Intelligence and Statistics*, 249-256.
 
 GYMNASIUM, 2025. Walker2D [viewed 14 August 2025]. Available from: https://gymnasium.farama.org/environments/mujoco/walker2d/
+
+KARGAR, I., 2019. RL Series-REINFORCE. In: Medium. 10 November Available from: https://kargarisaac.medium.com/rl-series-reinforce-in-pytorch-98102f710c27
 
 KAMARULARIFFIN, A.B., A.B.M. IBRAHIM and A. BAHAMID, 2023. Improving Deep Reinforcement Learning Training Convergence using Fuzzy Logic for Autonomous Mobile Robot Navigation. International journal of advanced computer science & applications, 14(11),
 
