@@ -228,7 +228,7 @@ The REINFORCE policy network architecture comprises:
 
 - **Initialisation and Stabilisation**
 
-  - Xavier for weight initialisation (Glorot & Bengio, 2010).
+  - Xavier for weight initialisation (Glorot & Bengio, 2010; Lunartech 2025).
   - Bias initialisation to stabilise initial estimates.
   - Gradient clipping (max gradient norm = 5) to prevent exploding gradients.
 
