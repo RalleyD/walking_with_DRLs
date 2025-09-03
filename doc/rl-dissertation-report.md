@@ -596,7 +596,6 @@ Firstly, the policy is updated regardless of strong or weak environment interact
 
 Secondly, REINFORCE trains on-policy without a value function to critisise the policy's action selections. TD3 utilises an off-policy approach by training a critic network separately to learn the action-value (Q) function. Guiding the actor to update its policy from the critic's learned experience. In this latter form, the actor learns to select actions that aim to maximise the Q-value estimate provided by the critic (Shen 2024).
 
-TODO - should this go into the limitations section?
 The stochasticity of REINFORCE inherently has large variance, incresaing over longer training trajectories. To address this, a baseline component can be added to the value function, which should reduce variance, improving convergence.
 
 The optimal baseline that minimizes the variance of the gradient estimator is given by:
@@ -629,10 +628,6 @@ Overfitting, deterministic policies tend to overfit to narrow peaks in the criti
 
 Training stability, by updating the actor policy less frequently, this allows the critic to converge more consistently between updates, reducing oscillations during policy updates. Analogous, to a teacher learning from experience, prior to updating the student, minmising the error before performing a policy update (Shen 2024).
 
-TODO mention the drawback in the discussion
-
-A reason for large variance of policy gradients in the REINFORCE algorithm is that the empirical average is taken at each time step, which is caused by stochasticity of policies. (this is originally in the results chapter to aid discussion on the learning curve plots, should it be moved here? TODO)
-
 ### 5.2 Theoretical Implications
 
 The results align with theoretical understanding:
@@ -651,6 +646,8 @@ For practitioners implementing locomotion controllers:
 4. Learning rate and gradient clamping significantly impact performance.
 
 With respect to simple policy gradient methods, during experimentation REINFORCE demonstrated sensitivity to hyperparameters, particularly the learning rate. Which, further required adjustment from the inital to enhanced network structure. This is aligned wwith the findings by Zhao et al. (2012), making the practical implementation nontrivial. TD3 thefore, becomes a more optimal choice for practical deployment as the experimentation time is significantly lower.
+
+#### 5.3.1 GPU Optimisation
 
 ```
 CPU:
@@ -676,6 +673,36 @@ The figure above shows an extract of the logging module which captures timestamp
 ![Figure: PyTorch GPU Optimisation](../out/doc/diagrams/gpu-block/GPU.png)
 
 Figure __, outlines the flow of data required for GPU optimisation. Data shall be sent down to GPU RAM at the moment it is required, i.e. for inference and optimisation. Data shall be loaded back to the CPU for other tasks such as data manipulation and passing into the simulation environment.
+
+#### 5.3.2 Actor Gradient-Clipping
+
+The TD3 results showed reducing performing above 750,000 timesteps. This was found to be a symptom of exploding gradients over longer training trajectories:
+
+```
+2025-Aug-22 12:55:37,262:td3_trainer:train:INFO: total grad norm after 5000 time steps: 3.8083461089059374
+2025-Aug-22 12:55:40,103:td3_trainer:train:INFO: Evaluating model - Time step: 910000 - Mean returns: 5757.01
+
+2025-Aug-22 12:56:23,400:td3_trainer:train:INFO: total grad norm after 5000 time steps: 12.291866027507764
+2025-Aug-22 12:56:27,881:td3_trainer:train:INFO: Evaluating model - Time step: 915000 - Mean returns: 5490.95
+
+2025-Aug-22 12:57:08,933:td3_trainer:train:INFO: total grad norm after 5000 time steps: 3.4161311908561887
+2025-Aug-22 12:57:12,099:td3_trainer:train:INFO: Evaluating model - Time step: 920000 - Mean returns: 5714.88
+
+2025-Aug-22 12:57:55,220:td3_trainer:train:INFO: total grad norm after 5000 time steps: 8.078854200195888
+2025-Aug-22 12:57:58,363:td3_trainer:train:INFO: Evaluating model - Time step: 925000 - Mean returns: 5520.13
+```  
+Figure: TD3 Log - Exploding Gradients Over Longer Trajectories.
+
+The gradient updates increased to magnitudes from ~7 to over ~21 in some instances. While TD3 employs stabilisation methods - clipped double-Q learning to minimise the estimation of two critics and soft target updates - the implemenation doesn't apply any management of the updates to the actor itself. The actor losses are provided by one critic network, if the Q-value is overestimated, the gradient with respect to actions will be larger:
+
+```math
+\nabla_a Q^{\pi}(s, a)
+```  
+Figure: Gradient of the critic Q-value output for a given action (a) in state (s); used to update the actor policy.
+
+This will directly increase the magnitude of the policy gradient used to update the actor. The scale of the Q-value estimates are directly linked to the magnitude of the updates to the actor (Shen 2024, p.152). The logs from the experiments suggest that clipping the gradient norm to 5 should stabilise this problem.
+
+#### 5.3.3 Training Duration
 
 ```
 2025-Aug-22 10:38:56,171:td3_trainer:train:INFO: Training trial: 3
@@ -727,6 +754,8 @@ The benefit is that decision transformers can scale effectively. By leveraging G
 
 Training machine learning models typically requires quality datasets, containing accurate and diverse data over a significant number of observations. In traditional reinforcement learning training, value overestimation and error propagation are inherent challenges. The challenge of model-free reinforcement learning is that the datasets are generated from other agents, which may be suboptimal for the task. A task that is continuous, is unlikely to have data representing all states for all actions.
 
+Similar to having a high fidelity simulation environment, data from unknown sources or poorly trained agents can generate destructive biases, as the transformer model is "conditioned on desired returns" (Chen et al. 2021).
+
 For continuous control tasks, including locomotion environments like HalfCheetah, Hopper, and Walker, datasets include (CITE main source):
 
 - "Medium: 1 million timesteps from a policy achieving roughly one-third of an expert's score."
@@ -770,9 +799,16 @@ As a result of the higher model complexity, the full training duration from Chen
 ### 5.5 Future Work
 
 Future work should explore:
+
 - Implementation of Decision Transformer for Walker2d.
 - Deployment strategies for real robotic systems.
-- Decision Transformer architecture for future deployment.
+- Richer visualisations and tracking of model development progress with Tensorboard.
+
+Tensorboard is a visualisation from Tensorflow, which also works with PyTorch. Tensorboard can track testing and evaluation data logged to a specific folder to keep track of model development progress via an interactive dashboard. By extracting specific log data, plots can be analysed offline and data from multiple logs can be overlayed on the same visualisation:
+
+![Figure: Tensorboard Linear Regression Example Visualisation](../plots/tensorboard-example.png)
+
+Figure _, demonstrates the basic usage. The SummaryWriter methods ```add_graph``` and ```add_scalers``` were used to send training and validation loss data to Tensorboard to plot the loss curves. This will aid productivity, inspecting logs and data from multiple logs over longer development cycles (TensorFlow 2023).
 
 ## 6. Conclusion
 
@@ -797,14 +833,14 @@ The project makes several contributions:
 
 ### 6.3 Answering the Research Question
 
-The practical implementation of modern reinforcement learning research achieves simulated robot locomotion with both quantifiable and perceivable improvements over basic approaches. The improvements are not marginal but transformative, enabling successful locomotion where basic methods fail entirely.
+The practical implementation of modern reinforcement learning research achieves simulated robot locomotion with both quantifiable and perceivable improvements over basic approaches. The improvements are not marginal but transformative, enabling successful locomotion where basic methods fail entirely. The research into understanding why the basic gradient policy method failed discovered potential improvements that could be explored for more basic locomation tasks.
 
 ### 6.4 Implications for Practice
 
 For researchers and practitioners in robotics and reinforcement learning:
 - Investment in modern algorithms yields substantial returns in performance.
 - The additional implementation complexity of TD3 over REINFORCE is justified by results.
-- Future systems should consider transformer-based approaches for further efficiency gains.
+- Future systems should consider transformer-based approaches for further efficiency and potential performance gains.
 
 ### 6.5 Limitations and Future Research
 
@@ -851,6 +887,8 @@ LUNARTECH, 2025. Mastering Xavier Initialization: Enhancing Neural Networks for 
 SHEN, X., 2024. Comparison of DDPG and TD3 Algorithms in a Walker2D Scenario. Atlantis Press International BV, pp.148
 
 STAPELBERG, B. and K.M. MALAN, 2020. A survey of benchmarking frameworks for reinforcement learning. South African Computer Journal, 32(2), 258–292
+
+TENSORFLOW, 2023. Using TensorBoard in Notebooks [viewed 03 September 2025]. Available from: https://www.tensorflow.org/tensorboard/tensorboard_in_notebooks
 
 WAN, Y., D. KORENKEVYCH and Z. ZHU, 2025. An Empirical Study of Deep Reinforcement Learning in Continuing Tasks.
 
@@ -979,6 +1017,8 @@ Network: A function approximator that learns to estimate complex functions, such
 Policy: "The control strategy of an agent used to make decisions" (Stapelberg and Malan 2020).
 
 Gradient: The rate of change of loss from a predicted action.
+
+GPU: Graphics Processing Unit. CUDA utilises the optimised hardware instructions, that enables faster neural network training.
 
 Environment: The simulated object that is acted upon by a neural network agent.
 
