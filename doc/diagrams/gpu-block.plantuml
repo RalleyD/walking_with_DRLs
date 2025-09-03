@@ -1,0 +1,20 @@
+@startuml GPU
+
+title GPU Optimisation Data Flow
+
+skinparam componentStyle rectangle
+skinparam defaultTextAlignment center
+
+rectangle " ======= CPU ======= " as CPU
+rectangle "Simulation\nEnv" as SIM
+rectangle "DRL\nAgent" as DRL
+rectangle " ======= GPU ======= " as GPU
+
+CPU --> SIM : Actions
+CPU --> DRL : Offload Model
+DRL --> GPU : Model
+SIM --> GPU : States, Actions, Rewards
+GPU -up-> DRL: Updates (States, Actions, Rewards)
+GPU -up-> CPU: Inference (Actions)
+
+@enduml
