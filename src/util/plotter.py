@@ -337,7 +337,19 @@ class PlotLearningCurve:
 
 
 def record_gif(gif_frames: list, fps=200, filename: str = "reinforce", epochs: int = None) -> None:
-
+    """
+    Records a sequence of frames as a GIF file.
+    Args:
+        gif_frames (list): List of image frames (as numpy arrays or PIL Images) to include in the GIF.
+        fps (int, optional): Frames per second for the GIF. Defaults to 200.
+        filename (str, optional): Base name for the output GIF file. Defaults to "reinforce".
+        epochs (int, optional): Number of epochs to include in the filename. If None, this is omitted.
+    Raises:
+        OSError: If the output directory cannot be created.
+        Exception: If writing the GIF fails.
+    Notes:
+        The GIF is saved in the "recordings" directory under the project root, with a timestamp in the filename.
+    """
     out_dir = PRJ_ROOT / "recordings"
     epochs_str = str(epochs) + "epochs_" if epochs else ""
     file = filename + '-' + epochs_str + \
