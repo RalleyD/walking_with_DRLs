@@ -206,7 +206,7 @@ def train(self):
         done = False
         obs, _ = self._env.reset(seed=trial)
 ```  
-Figure 2: Training Loop Reproducibility.
+*Figure: Training Loop Reproducibility.*
 
 Figure 2, demonstrates that in order to reproduce the training of both models, the environment state, environment versions and network shall be seeded to provide consistent and repeatable training randomisation. If single or multiple trials are run, the final result (averaged if multiple trials are used), results across separate training runs shall be comparable.
 
@@ -267,7 +267,7 @@ def forward(self, x: torch.Tensor):
 
     return means, stddevs   
 ```  
-Figure 3: REINFORCE - Forward Pass Implementation.
+*Figure 3: REINFORCE - Forward Pass Implementation.*
 
 To provide the standard deviations for the agent's gaussian policy - the amount of exploration in the distributions - the model's output is exponentiated, shown in figure 3. This ensures that the variance is always positive. Additionally, for a high negative output, the exploration is small and for a high positive output, the exploration is large (Zhao et al. 2012, p.119)
 
@@ -304,7 +304,7 @@ clipped_noise = torch.clamp(
     ) * 0.2, -0.5, 0.5
 )
 ```  
-Figure 4: Clipped Gaussian Noise - TD3 Target Action.
+*Figure 4: Clipped Gaussian Noise - TD3 Target Action.*
 
 To aid convergence to a robust policy, gaussian noise is added to the target action, preventing the policy from being overly deterministic, the noise is clipped to keep the target close to the original action (Fujimoto et al, 2018).
 
@@ -317,7 +317,7 @@ exploration_noise = torch.clamp(torch.randn_like(
 
 action = np.add(action, exploration_noise)
 ```  
-Figure 5: Clipped Gaussian Noise - TD3 Actor Estimate.
+*Figure 5: Clipped Gaussian Noise - TD3 Actor Estimate.*
 
 To encourage exploration, gaussian noise is added to the policy estimation (Wan, Korenkevych and Zhu 2025; Fujimoto, van Hoof and Meger 2018).
 
@@ -336,7 +336,7 @@ class CriticPolicy(nn.Module):
             nn.Linear(128, 1)
         ).to(device)
 ```  
-Figure 6: Critic Network Implementation.
+*Figure 6: Critic Network Implementation.*
 
 The critic learns a quality function from the actor's interactions with the environment i.e state, action, reward, next state. Outputting a quality value based on the actor's predicted action; estimating the return of a given state action pair. Therefore, the critic network is used to update actor to maximise the quality value, guiding the actor's learning of appropriate state-driven actions (Shen 2024).
 
@@ -356,7 +356,7 @@ class ActorPolicy(nn.Module):
             nn.Linear(128, action_dim)
         ).to(device)
 ```  
-Figure 7: TD3 Actor Policy Implementation. 
+*Figure 7: TD3 Actor Policy Implementation.*
 
 The role of the Actor therefore, is to estimate actions which achieve the highest quality value, learning an optimal policy. After a delayed period (d), the actor is updated based on the current learned experiences of the critic (Shen 2024).
 
@@ -384,7 +384,7 @@ def update_actor(self, states: torch.Tensor):
 
     self.actor_optimizer.step()
 ```  
-Figure 8: Agent - Backpropagation Update Method (TD3).
+*Figure 8: Agent - Backpropagation Update Method (TD3).*
 
 Both models are based on gradient descent; the aim of minimising the loss for each subsequent backpropagation during training. The aim of REINFORCE and TD3, is to maximise the policy's cumulative reward. Therefore, the backpropagation of these models maximises these values by minimising negative loss values, creating gradient ascent (Zhao et al. 2012).
 
@@ -460,7 +460,7 @@ loss = loss.mean()
 self.optimizer.zero_grad()
 loss.backward()
 ```  
-Figure 13: Reinforce Agent Update Method
+*Figure 13: Reinforce Agent Update Method*
 
 Which, sums the log of the probabilities of taking all actions in each step, multiplied by the discounted action rewards of that trajectory. When these noisy gradients from multiple time steps within a trajectory are aggregated, this is the cause of the high variance. Over longer trajectories (training durations), the accumulation of this noise worsens the variance, as seen in figures 10 and 11 (Zhao et al. 2012). 
 
@@ -487,14 +487,14 @@ nn.init.xavier_uniform_(self.log_std_net[-1].weight)
 # log std final layer initial bias to 0
 self.log_std_net[-1].bias.data.fill_(0.0)
 ```  
-Figure 14: REINFORCE Policy Initialisation.
+*Figure 14: REINFORCE Policy Initialisation.*
 
 The REINFORCE policy initialisation did not improve the learning curve results, demonstrated in the continued high variance shown in figures 10 to 12. Xavier initialisation attempts to moderate the amount of initial exploration proportional to the layers size, preventing vanishing or exploding gradients (Lunartech 2025). Bias initialisation attempts a similar effect, of limiting the amount of initial exploration by setting the bias component to zero.
 
-```math
+$$
 exp(σ) = 1.0 
-```  
-Figure 15: Policy Bias Initialisation.
+$$  
+*Figure 15: Policy Bias Initialisation.*
 
 Where σ represents the log standard deviation at initialisation, zero (Bajaj Aayush 2025).
 
@@ -571,7 +571,7 @@ Figure 19 illustrates that, in both cases, TD3 was able to achieve returns suffi
 | Reinforce | Cheetah-v4 | ~(-700) | -             | Not achieved | No             |
 | TD3 | InvertedPendulum-v4 | ~980 | ~300          | ~200k steps | Yes             |
 | Reinforce | InvertedPendulum-v4 | ~30 | -         | Not achieved | No             |  
-Table 1: Performance Evaluation Summary.
+*Table 1: Performance Evaluation Summary.*
 
 The A/B comparison results in table 1, demonstrates TD3's superiority. TD3 achieves a stable solution in every tested environment, with a consistent convergence time, achieving a solution REINFORCE could not attain.
 
@@ -603,23 +603,25 @@ The stochasticity of REINFORCE inherently has large variance, incresaing over lo
 
 The optimal baseline that minimises the variance of the gradient estimator is given by:
 
-```math
 
-b = \frac{
-\mathbb{E} \left[ R(h) \left\| \sum_{t=1}^{T} \nabla_\theta \log p(a_t | s_t, \theta) \right\|^2 \right]
+$$
+b =
+\frac{
+\mathbb{E}\left[ R(h)\, \| \sum_{t=1}^{T} \nabla_\theta \log p(a_t \mid s_t, \theta) \|^{2} \right]
 }{
-\mathbb{E} \left[ \left\| \sum_{t=1}^{T} \nabla_\theta \log p(a_t | s_t, \theta) \right\|^2 \right]
+\mathbb{E}\left[ \| \sum_{t=1}^{T} \nabla_\theta \log p(a_t \mid s_t, \theta) \|^{2} \right]
 }
+$$
+
+where:
+
+- $R(h)$ is the expected return; the action-value function of the policy  
+- $\nabla_\theta \log p(a_t \mid s_t, \theta)$ is the gradient of the log-probability of action $a_t$ at state $s_t$  
+- $\sum_{t=1}^{T} \nabla_\theta \log p(a_t \mid s_t, \theta)$ is the total gradient over the trajectory  
+- $\|\cdot\|^2$ denotes the squared Euclidean norm
 
 
-\\[1em]
-\text{where:} \\
-\quad R(h) \text{ is the expected return; the action-value function of the policy } \\
-\quad \nabla_\theta \log p(a_t | s_t, \theta) \text{ is the gradient of the log-probability of action } a_t \text{ at state } s_t \\
-\quad \sum_{t=1}^{T} \nabla_\theta \log p(a_t | s_t, \theta) \text{ is the total gradient over the trajectory} \\
-\quad \left\| \cdot \right\|^2 \text{ denotes the squared Euclidean norm}
-```
-Figure 20: Optimial reinforce baseline (Zhao et al. 2012)
+*Figure 20: Optimial reinforce baseline (Zhao et al. 2012)*
 
 As shown in figure 20, the baseline projects the return onto the gradient, scaling by the gradient magnitude. Where a baseline term is used, the reward signals are normalised, making the gradient updates more consistent and less erratic. However according to Zhao et al. (2012), the problem can still persist.
 
@@ -649,7 +651,7 @@ self.target_action.load_state_dict(
     self.actor.state_dict()
 )
 ```  
-Figure 21: Initialise Target Network with Copies of the Main Network's Parameters.
+*Figure 21: Initialise Target Network with Copies of the Main Network's Parameters.*
 
 By initialising the target networks correctly, they will more closely track the main networks, with immediate stable Q-values, shown by the rapid initial training ramp up in figure 18. Without this, a strong performance can still be achived, as shown in figure 16, but the repeatability is uncertain as a source of randomness is added to the target networks initialisation.
 
@@ -668,7 +670,7 @@ def evaluate(self, current_time_step: int, current_trial: int, eval_episodes=10)
             obs, _ = eval_env.reset(seed=current_trial)
             # ...
 ```  
-Figure 22: Evaluate with No Gradient Tracking
+*Figure 22: Evaluate with No Gradient Tracking*
 
 Ensuring that the agent's action tensors do not track their gradients, decouples the agents output during evaluation so that it does not adversely affect the main training loop. Since evaluation occurs periodically within the training loop and without noise added to the actions, ensures that evaluation does not contribute to any backpropagation. In addition, this improves the speed of evaluation and uses less memory, since the actions are not being tracked, it does not become part of a computation data structure, tracking past values and dependencies with other data.
 
@@ -711,7 +713,7 @@ GPU:
 --- Trials ---
     2
 ```  
-Figure 23: Log Extract - CPU vs GPU Optimisation
+*Figure 23: Log Extract - CPU vs GPU Optimisation*
 
 Figure 23 shows an extract of the logging module which captures timestamps across the duration of the training and evaluation runs. Meausred over 1000 time steps, incorporating GPU optimisation reduced the training time by 72.26 %. See annex F for hardware specifications. 
  
@@ -738,14 +740,14 @@ The TD3 learning curves showed reducing performance above 750,000 timesteps. Thi
 2025-Aug-22 12:57:55,220:td3_trainer:train:INFO: total grad norm after 5000 time steps: 8.078854200195888
 2025-Aug-22 12:57:58,363:td3_trainer:train:INFO: Evaluating model - Time step: 925000 - Mean returns: 5520.13
 ```  
-Figure 25: TD3 Log - Exploding Gradients Over Longer Trajectories.
+*Figure 25: TD3 Log - Exploding Gradients Over Longer Trajectories.*
 
 The gradient updates increased to magnitudes from ~7 to over ~21 in some instances. While TD3 employs stabilisation methods - clipped double-Q learning to minimise the estimation of two critics and soft target updates - the implemenation doesn't apply any management of the updates to the actor itself. The actor losses are provided by one critic network, if the Q-value is overestimated, the gradient with respect to actions will be larger:
 
-```math
+$$
 \nabla_a Q^{\pi}(s, a)
-```  
-Figure 26: Gradient of the critic Q-value output for a given action (a) in state (s); used to update the actor policy.
+$$  
+*Figure 26: Gradient of the critic Q-value output for a given action (a) in state (s); used to update the actor policy.*
 
 This will directly increase the magnitude of the policy gradient used to update the actor. The scale of the Q-value estimates are directly linked to the magnitude of the updates to the actor (Shen 2024, p.152). The logs from the experiments suggest that clipping the gradient norm to 5 should stabilise this problem.
 
@@ -757,7 +759,7 @@ This will directly increase the magnitude of the policy gradient used to update 
 
 2025-Aug-22 13:09:29,056:td3_trainer:train:INFO: Evaluating model - Time step: 1000000 - Mean returns: 5514.83
 ```  
-Figure 27: Per-trial Training Duration - Log Extract.
+*Figure 27: Per-trial Training Duration - Log Extract.*
 
 The training duration for TD3 is considerably long. During the training phases of the project, each trial took approximately two hours and thirty minutes, with GPU optimisation. In order to close the gap between research methods and deployable models, the training time should be drastically reduced while achieving a robust policy.
 
@@ -852,6 +854,8 @@ Future work should explore:
 - Implementation of Decision Transformer for Walker2d.
 - Deployment strategies for real robotic systems.
 - Richer visualisations and tracking of model development progress with Tensorboard.
+
+Bajaj Aayush (2025), reinforces the importance of logging, evident in the capture of the exploding gradients issue, during long trajectory training of TD3. However, text-only logging poses a risk of missing important training patterns in model development. Hence, the recommendation to use Tensorboard to efficiently catch such issues.
 
 Tensorboard is a visualisation tool from Tensorflow, which also works with PyTorch. Tensorboard can track testing and evaluation data, logged to a specific folder, to monitor model development progress via an interactive dashboard. By extracting specific log data, plots can be analysed offline and data from multiple logs can be overlayed on the same visualisation:
 
@@ -1090,6 +1094,8 @@ Agent: A decision-maker that learns to achieve an optimal policy by interacting 
 
 Actor: Refers to the policy network that learns to map states to actions (Shen 2024).
 
+DRL: Deep Reinforcement Learning.
+
 Network: A function approximator that learns to estimate complex functions, such as value functions or policies, especially in problems with large state and action space (Stapelberg and Malan 2020).
 
 Policy: "The control strategy of an agent used to make decisions" (Stapelberg and Malan 2020).
@@ -1103,6 +1109,8 @@ Environment: The simulated object that is acted upon by a neural network agent.
 Observation: The current state of the environment, following a reset or action.
 
 State: Analogous to observation.
+
+TD3: Twin-delayed deep deterministic policy gradient.
 
 ### Appendix E: Project Plan
 
@@ -1164,7 +1172,7 @@ from src.util.plotter import record_gif
 from src.custom_logger import CustomLogger
 ```
 
-### Appendix I: Python Libaries Used in Learning Curve & Simulation Visualisation
+### Appendix I: Learning Curve & Simulation Visualisation Python Code
 
 ```python
 import matplotlib.pyplot as plt
@@ -1176,5 +1184,98 @@ from moviepy import ImageSequenceClip
 from datetime import datetime
 from src.evaluate.performance_metrics import PerformanceMetrics
 from src.custom_logger import CustomLogger
+
+def _lc_axis(self, x, y, y_std, model_name: str):
+        if x is None:
+            x = np.arange(0, len(y), 1)
+
+        print("length x: ", len(x))
+        print("length y: ", len(y))
+        print("length y std: ", len(y_std))
+        print(f"{x=}")
+        print(f"{y=}")
+        print(f"{y_std=}")
+
+        self._ax.plot(x, y, label=model_name,
+                      c=self._clrs[self._clr_idx])
+
+        if len(y_std):
+            self._ax.fill_between(x, y-y_std, y+y_std,
+                                  alpha=0.3,
+                                  facecolor=self._clrs[self._clr_idx])
+
+        self._clr_idx = self._clr_idx + 1 \
+            if self._clr_idx < len(self._clrs) else 0
+
+        self._ax.set_xticks(
+            np.arange(0, int(self._time_steps)+1,
+                      step=int(self._time_steps // 5))
+        )
+        self._ax.grid(visible=True)
+        self._ax.legend()
+        self._ax.set_title(self._title)
+        self._ax.set_xlabel("time steps (n)")
+        self._ax.set_ylabel("returns (n)")
+
+    def _plot_lc_with_confidence(self, alpha=0.5):
+        if len(self._reinforce_y):
+            y_reinforce_smoothed = self._smooth_curve(self._reinforce_y.copy())
+            # call _lc_axis with x_data, smoothed y_data
+            y_std_alpha = self._reinforce_y_std * alpha
+            self._lc_axis(self._reinforce_x, y_reinforce_smoothed,
+                          y_std_alpha, "reinforce")
+
+        if len(self._td3_y):
+            y_td3_smoothed = self._smooth_curve(self._td3_y)
+            # call _lc_axis with x_data, y_std
+            y_td3_std_alpha = self._td3_y_std * alpha
+            self._lc_axis(self._td3_x, y_td3_smoothed, y_td3_std_alpha, "TD3")
+
+def _smooth_curve(self, y_data: np.ndarray, method='sma', window=100) -> np.ndarray:
+    """
+    Args:
+        method (str): 'sma' -> simple moving average
+    """
+    # establish a ones array of size window
+    # for equal weights divide each ones by the window size
+    if len(y_data) <= window:
+        window = int(len(y_data) // 10)
+
+    weights = np.ones(window) / window
+    # convolve the weights array with y_data
+    sma = np.convolve(y_data, weights, mode='same')
+
+    return sma
+
+def _save_plot(self, fig: plt.Figure):
+    output_dir = PRJ_ROOT / "plots"
+    output_dir.mkdir(exist_ok=True)
+    out_file = self._title.replace(" ", "-").replace(
+        ",", "_").replace(":", "") + \
+        datetime.now().strftime("%Y-%m-%d_%H_%M_%S") + \
+        ".png"
+
+def record_gif(gif_frames: list, fps=200, filename: str = "reinforce", epochs: int = None) -> None:
+    """
+    Records a sequence of frames as a GIF file.
+    Args:
+        gif_frames (list): List of image frames (as numpy arrays or PIL Images) to include in the GIF.
+        fps (int, optional): Frames per second for the GIF. Defaults to 200.
+        filename (str, optional): Base name for the output GIF file. Defaults to "reinforce".
+        epochs (int, optional): Number of epochs to include in the filename. If None, this is omitted.
+    Raises:
+        OSError: If the output directory cannot be created.
+        Exception: If writing the GIF fails.
+    Notes:
+        The GIF is saved in the "recordings" directory under the project root, with a timestamp in the filename.
+    """
+    out_dir = PRJ_ROOT / "recordings"
+    epochs_str = str(epochs) + "epochs_" if epochs else ""
+    file = filename + '-' + epochs_str + \
+        datetime.now().strftime("%Y-%m-%d_%H_%M_%S") + ".gif"
+    out_dir.mkdir(exist_ok=True)
+
+    clip = ImageSequenceClip(gif_frames, fps=fps)
+    clip.write_gif(out_dir / file, fps=fps)
 ```
 ----
