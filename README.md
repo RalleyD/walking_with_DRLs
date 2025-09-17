@@ -125,8 +125,8 @@ walking_with_DRLs/
 
 | Environment | TD3 Results | Demo GIF | Best Performance |
 |-------------|-------------|----------|------------------|
-| **Walker2D-v4** | Mean: ~2800 ± 600 | *[GIF Placeholder - Walker2D]* | 4682.82 ± 539.64¹ |
-| **HalfCheetah-v4** | Mean: ~5000 ± 500 | *[GIF Placeholder - HalfCheetah]* | Research baseline¹ |
+| **Walker2D-v4** | Mean: ~2800 ± 600 | ![walker2d-v4: TD3](doc/walker2dv4-td3.gif) | 4682.82 ± 539.64¹ |
+| **HalfCheetah-v4** | Mean: ~5000 ± 500 | ![halfCheetah-v4: TD3](doc/halfcheetahv4-td3.gif) | Research baseline¹ |
 
 ¹ *Best results from TD3 research (Fujimoto et al., 2018)*
 
