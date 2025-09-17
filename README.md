@@ -71,14 +71,8 @@ pip install -r requirements.txt
 ### Training
 
 ```bash
-# Train TD3 agent
-python main.py --algorithm td3 --env Walker2d-v4
-
-# Train REINFORCE agent
-python main.py --algorithm reinforce --env Walker2d-v4
-
-# Compare both algorithms
-python main.py --compare
+# Train TD3 & REINFORCE agent
+python main.py 
 ```
 
 ### Evaluation
@@ -137,8 +131,9 @@ walking_with_DRLs/
 ¹ *Best results from TD3 research (Fujimoto et al., 2018)*
 
 **Key Achievements:**
-- ✅ Stable bipedal walking achieved with TD3
-- ✅ 50x faster convergence compared to theoretical Decision Transformer baseline
+
+- ✅ Stable bipedal and cheetah walking achieved with TD3
+- ✅ 37.5x faster convergence with theoretical Decision Transformer.
 - ✅ Robust performance across multiple continuous control environments
 - ✅ GPU optimization reducing training time by 72%
 
@@ -149,6 +144,16 @@ walking_with_DRLs/
 - **🏗️ Code Architecture Improvements**
   - Refactor code duplication with base classes for agents and trainers
   - Implement unified interface for algorithm comparison and extension
+  - Command line args for entrypoint:
+  
+    ```python
+    python main.py --algorithm td3 --env Walker2d-v4
+    # Train REINFORCE agent
+    python main.py --algorithm reinforce --env Walker2d-v4
+
+    # Compare both algorithms
+    python main.py --compare
+    ```
 
 - **📊 Advanced Monitoring & Visualization**
   - Migrate learning curve visualizations and logging to TensorBoard
@@ -187,7 +192,7 @@ The Walker2D Decision Transformer analysis referenced in this study uses data fr
 @misc{walking_with_drls,
     author = {Ralley, Daniel},
     title = {Walking with DRLs: A Comparative Study of REINFORCE and TD3 Algorithms},
-    year = {2024},
+    year = {2025},
     publisher = {GitHub},
     journal = {GitHub repository},
     howpublished = {\url{https://github.com/RalleyD/walking_with_DRLs}},
